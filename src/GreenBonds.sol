@@ -13,3 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title Enhanced GreenBonds
 /// @notice A comprehensive smart contract implementing a green bond to support climate and environmental projects
 /// @dev Uses AccessControl for role-based permissions
+    /// @notice Role definitions
+    bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
+    bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
+    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
