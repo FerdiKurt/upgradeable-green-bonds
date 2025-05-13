@@ -45,6 +45,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
     bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
+    /// @notice Precision factor for calculations
+    uint256 private constant PRECISION_FACTOR = 1e18;
+    
     /// @notice Bond details
     /// @dev Core financial parameters of the bond
     string public bondName;
