@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title Enhanced GreenBonds
+/// @title Upgradeable GreenBonds
 /// @notice A comprehensive smart contract implementing a green bond to support climate and environmental projects
 /// @dev Uses AccessControl for role-based permissions
 contract UpgradeableGreenBonds is 
