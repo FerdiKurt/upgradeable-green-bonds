@@ -76,6 +76,16 @@ contract UpgradeableGreenBonds is
     IERC20 public paymentToken;
     
     
+    // Early redemption parameters
+    uint256 public earlyRedemptionPenaltyBps; // Penalty in basis points
+    bool public earlyRedemptionEnabled;
+    
+    // Green project details
+    string public projectDescription;
+    string public impactMetrics;
+    string[] public greenCertifications;
+    
+    
     // Governance parameters
     struct Proposal {
         address proposer;
@@ -95,4 +105,14 @@ contract UpgradeableGreenBonds is
     uint256 public proposalCount;
     uint256 public quorum;
     uint256 public votingPeriod;
+    
+    // Timelock for critical operations
+    mapping(bytes32 => uint256) public operationTimestamps;
+    uint256 public constant TIMELOCK_PERIOD = 2 days;
+    
+    // Dashboard contract reference
+    address public dashboardContract;
+    
+    // Coupon claim tracking for standard bonds
+    mapping(address => uint256) public lastCouponClaimDate;
     
