@@ -45,6 +45,22 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
     bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
+    /// @notice Bond details
+    /// @dev Core financial parameters of the bond
+    string public bondName;
+    string public bondSymbol;
+    uint256 public faceValue;
+    uint256 public bondTotalSupply;  // Renamed from totalSupply to avoid conflict with ERC20
+    uint256 public availableSupply;
+    uint256 public baseCouponRate; // Base rate in basis points (e.g., 500 = 5.00%)
+    uint256 public greenPremiumRate; // Additional rate based on green performance
+    uint256 public maxCouponRate; // Cap on total rate
+    uint256 public couponRate; // Current effective rate (base + green premium)
+    uint256 public couponPeriod; // in seconds
+    uint256 public maturityDate;
+    uint256 public issuanceDate;
+    
+    
     // Governance parameters
     struct Proposal {
         address proposer;
