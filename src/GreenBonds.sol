@@ -44,3 +44,24 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
     bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    
+    // Governance parameters
+    struct Proposal {
+        address proposer;
+        string description;
+        bytes callData;
+        address target;
+        uint256 forVotes;
+        uint256 againstVotes;
+        uint256 startTime;
+        uint256 endTime;
+        bool executed;
+        mapping(address => bool) hasVoted;
+    }
+    
+    // Governance storage
+    mapping(uint256 => Proposal) public proposals;
+    uint256 public proposalCount;
+    uint256 public quorum;
+    uint256 public votingPeriod;
+    
