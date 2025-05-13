@@ -13,6 +13,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title Enhanced GreenBonds
 /// @notice A comprehensive smart contract implementing a green bond to support climate and environmental projects
 /// @dev Uses AccessControl for role-based permissions
+contract UpgradeableGreenBonds is 
+    Initializable, 
+    AccessControlUpgradeable, 
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    ERC20Upgradeable,
+    UUPSUpgradeable
+{
+    using SafeERC20 for IERC20;
 
     /// @notice Custom errors 
     error BondMatured();
