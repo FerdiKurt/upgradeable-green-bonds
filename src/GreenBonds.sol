@@ -72,6 +72,9 @@ contract UpgradeableGreenBonds is
     uint256 public maturityDate;
     uint256 public issuanceDate;
     
+    // Payment token (e.g., USDC, DAI)
+    IERC20 public paymentToken;
+    
     
     // Governance parameters
     struct Proposal {
