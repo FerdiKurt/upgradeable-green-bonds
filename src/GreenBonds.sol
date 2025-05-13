@@ -13,6 +13,32 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title Enhanced GreenBonds
 /// @notice A comprehensive smart contract implementing a green bond to support climate and environmental projects
 /// @dev Uses AccessControl for role-based permissions
+
+    /// @notice Custom errors 
+    error BondMatured();
+    error BondNotMatured();
+    error InsufficientBondsAvailable();
+    error InvalidBondAmount();
+    error NoCouponAvailable();
+    error NoBondsToRedeem();
+    error PaymentFailed();
+    error ReportDoesNotExist();
+    error ReportAlreadyVerified();
+    error TooEarlyForWithdrawal();
+    error InsufficientFunds();
+    error EarlyRedemptionNotEnabled();
+    error InsufficientBonds();
+    error ProposalDoesNotExist();
+    error VotingPeriodEnded();
+    error ProposalAlreadyExecuted();
+    error QuorumNotReached();
+    error TrancheDoesNotExist();
+    error OperationNotScheduled();
+    error TimelockNotExpired();
+    error FailedExecution();
+    error ChallengePeriodEnded();
+    error AlreadyVoted();
+
     /// @notice Role definitions
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
