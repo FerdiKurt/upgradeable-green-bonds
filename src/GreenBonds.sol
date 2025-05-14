@@ -271,3 +271,15 @@ contract UpgradeableGreenBonds is
         // No additional validation needed beyond the role check
     }
     
+    /// @notice Circuit breaker - pauses the contract
+    /// @dev Only callable by admin
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+    
+    /// @notice Unpause the contract
+    /// @dev Only callable by admin
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+    
