@@ -112,6 +112,21 @@ contract UpgradeableGreenBonds is
     mapping(uint256 => EnhancedImpactReport) public impactReports;
     uint256 public impactReportCount;
     
+    // Tranches for different bond classes
+    struct Tranche {
+        string name;
+        uint256 faceValue;
+        uint256 couponRate;
+        uint256 seniority; // Lower number = more senior
+        uint256 totalSupply;
+        uint256 availableSupply;
+        mapping(address => uint256) holdings;
+        mapping(address => uint256) lastCouponClaimDate;
+    }
+    
+    // Tranche storage
+    mapping(uint256 => Tranche) public tranches;
+    uint256 public trancheCount;
     
     // Governance parameters
     struct Proposal {
