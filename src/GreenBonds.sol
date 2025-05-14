@@ -283,3 +283,11 @@ contract UpgradeableGreenBonds is
         _unpause();
     }
     
+    /// @notice Schedule an operation for timelock
+    /// @param operationId Unique identifier for the operation
+    /// @dev Internal function to create timelocks for sensitive operations
+    function scheduleOperation(bytes32 operationId) internal {
+        operationTimestamps[operationId] = block.timestamp + TIMELOCK_PERIOD;
+        emit OperationScheduled(operationId, block.timestamp + TIMELOCK_PERIOD);
+    }
+    
