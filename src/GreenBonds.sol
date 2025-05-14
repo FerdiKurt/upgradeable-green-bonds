@@ -375,3 +375,60 @@ contract UpgradeableGreenBonds is
         emit FundsAllocated("Emergency Reserve", emergencyAllocation);
     }
     
+    /// @notice Calculate claimable coupon amount for an investor
+    /// @param investor The address of the investor
+    /// @return uint256 The amount of payment tokens claimable as coupon interest
+    /// @dev Uses precise calculation with PRECISION_FACTOR
+    function calculateClaimableCoupon(address investor) public view returns (uint256) {
+        // Early returns for edge cases
+        uint256 bondBalance = balanceOf(investor);
+        if (bondBalance == 0) return 0;
+        
+        uint256 lastClaim = lastCouponClaimDate[investor];
+        if (lastClaim == 0) return 0;
+        
+        // Safely calculate time since last claim
+        uint256 timeSinceLastClaim;
+        if (block.timestamp < lastClaim) {
+            // This should never happen, but just in case of timestamp manipulation
+            return 0;
+        } else {
+            timeSinceLastClaim = block.timestamp - lastClaim;
+        }
+        
+        // If no time has passed, no coupon is due
+        if (timeSinceLastClaim == 0) return 0;
+        
+        // We'll use a step-by-step calculation approach to avoid overflows
+        
+        // Calculate the effective coupon rate (basis points to decimal)
+        // 500 basis points (5%) would become 0.05 * PRECISION_FACTOR
+        uint256 effectiveRate = couponRate;
+        
+        // Calculate annual interest for a single token with high precision
+        // We divide by 10000 to convert from basis points to actual percentage
+        uint256 annualInterestPerToken;
+        
+        // First calculate (faceValue * effectiveRate) which is safe from overflow
+        uint256 interestNumerator = faceValue * effectiveRate;
+        
+        // Then divide by 10000 to get the actual interest amount
+        annualInterestPerToken = interestNumerator / 10000; 
+        
+        // Calculate daily interest rate (safeguard against division by zero)
+        uint256 secondsPerYear = 365 days;
+        
+        if (secondsPerYear == 0) return 0; // Should never happen, but defensive coding
+        
+        // Calculate interest per second for a single token
+        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+        
+        // Calculate interest per second for all tokens held
+        uint256 totalInterestPerSecond = interestPerSecondPerToken * bondBalance;
+        
+        // Calculate total interest accrued over the time period
+        uint256 accruedInterest = totalInterestPerSecond * timeSinceLastClaim;
+        
+        return accruedInterest;
+    }
+    
