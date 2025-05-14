@@ -291,3 +291,31 @@ contract UpgradeableGreenBonds is
         emit OperationScheduled(operationId, block.timestamp + TIMELOCK_PERIOD);
     }
     
+    /// @notice Add a verifier who can validate impact reports
+    /// @param verifier Address to be granted verifier role
+    /// @dev Only callable by admin
+    function addVerifier(address verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(VERIFIER_ROLE, verifier);
+    }
+    
+    /// @notice Add a treasurer who can manage funds
+    /// @param treasurer Address to be granted treasurer role
+    /// @dev Only callable by admin
+    function addTreasurer(address treasurer) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(TREASURY_ROLE, treasurer);
+    }
+    
+    /// @notice Add an upgrader who can upgrade the contract
+    /// @param upgrader Address to be granted upgrader role
+    /// @dev Only callable by admin
+    function addUpgrader(address upgrader) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(UPGRADER_ROLE, upgrader);
+    }
+    
+    /// @notice Add a green certification
+    /// @param certification String describing the certification (e.g., "LEED Gold")
+    /// @dev Only callable by issuer
+    function addGreenCertification(string memory certification) external onlyRole(ISSUER_ROLE) whenNotPaused {
+        greenCertifications.push(certification);
+    }
+    
