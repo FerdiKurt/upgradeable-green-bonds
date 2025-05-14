@@ -198,3 +198,69 @@ contract UpgradeableGreenBonds is
     event TrancheCouponClaimed(address indexed investor, uint256 indexed trancheId, uint256 amount);
     event TrancheBondRedeemed(address indexed investor, uint256 indexed trancheId, uint256 amount, uint256 tokensReceived);
     
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+    
+    /// @notice Initialize the green bond (replaces constructor for upgradeable contract)
+    /// @param _name Name of the bond
+    /// @param _symbol Bond symbol identifier
+    /// @param _faceValue Face value of each bond unit
+    /// @param _totalSupply Total number of bonds issued
+    /// @param _baseCouponRate Annual base interest rate in basis points (e.g., 500 = 5.00%)
+    /// @param _maxCouponRate Maximum possible coupon rate in basis points
+    /// @param _couponPeriod Time between coupon payments in seconds
+    /// @param _maturityPeriod Time until bond matures in seconds
+    /// @param _paymentTokenAddress Address of ERC20 token used for payments
+    /// @param _projectDescription Description of the green project
+    /// @param _impactMetrics Description of environmental impact metrics tracked
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        uint256 _faceValue,
+        uint256 _totalSupply,
+        uint256 _baseCouponRate,
+        uint256 _maxCouponRate,
+        uint256 _couponPeriod,
+        uint256 _maturityPeriod,
+        address _paymentTokenAddress,
+        string memory _projectDescription,
+        string memory _impactMetrics
+    ) external initializer {
+        __AccessControl_init();
+        __ReentrancyGuard_init();
+        __Pausable_init();
+        __ERC20_init(_name, _symbol);
+        __UUPSUpgradeable_init();
+        
+        bondName = _name;
+        bondSymbol = _symbol;
+        faceValue = _faceValue;
+        bondTotalSupply = _totalSupply;
+        availableSupply = _totalSupply;
+        baseCouponRate = _baseCouponRate;
+        maxCouponRate = _maxCouponRate;
+        couponRate = _baseCouponRate; // Initially set to base rate
+        couponPeriod = _couponPeriod;
+        issuanceDate = block.timestamp;
+        maturityDate = block.timestamp + _maturityPeriod;
+        paymentToken = IERC20(_paymentTokenAddress);
+        projectDescription = _projectDescription;
+        impactMetrics = _impactMetrics;
+        
+        // Initialize governance parameters
+        quorum = _totalSupply * 30 / 100; // 30% quorum
+        votingPeriod = 7 days;
+        
+        // Initialize early redemption parameters
+        earlyRedemptionPenaltyBps = 300; // 3% penalty
+        earlyRedemptionEnabled = false;
+        
+        // Setup roles
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ISSUER_ROLE, msg.sender);
+        _grantRole(TREASURY_ROLE, msg.sender);
+        _grantRole(UPGRADER_ROLE, msg.sender);
+    }
+    
