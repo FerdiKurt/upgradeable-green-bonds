@@ -264,3 +264,10 @@ contract UpgradeableGreenBonds is
         _grantRole(UPGRADER_ROLE, msg.sender);
     }
     
+    /// @notice Authorizes contract upgrades via UUPS pattern
+    /// @param newImplementation Address of the new contract implementation
+    /// @dev Restricts upgrades to accounts with UPGRADER_ROLE
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
+        // No additional validation needed beyond the role check
+    }
+    
