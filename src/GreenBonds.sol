@@ -158,3 +158,43 @@ contract UpgradeableGreenBonds is
     // Coupon claim tracking for standard bonds
     mapping(address => uint256) public lastCouponClaimDate;
     
+    // Events
+    event BondPurchased(address indexed investor, uint256 amount, uint256 tokensSpent);
+    event CouponClaimed(address indexed investor, uint256 amount);
+    event BondRedeemed(address indexed investor, uint256 amount, uint256 tokensReceived);
+    event ImpactReportAdded(uint256 indexed reportId, string reportURI);
+    event ImpactReportVerified(uint256 indexed reportId, address verifier);
+    event ImpactReportFinalized(uint256 indexed reportId);
+    event ImpactReportChallenged(uint256 indexed reportId, address challenger, string reason);
+    event FundsAllocated(string projectComponent, uint256 amount);
+    event CouponRateUpdated(uint256 newRate);
+    event EarlyRedemptionStatusChanged(bool enabled);
+    event BondRedeemedEarly(address indexed investor, uint256 amount, uint256 tokensReceived, uint256 penalty);
+    event BondParametersUpdated(
+        uint256 oldCouponRate,
+        uint256 newCouponRate,
+        uint256 oldCouponPeriod,
+        uint256 newCouponPeriod
+    );
+    event ImpactMetricsAchieved(
+        uint256 reportId,
+        string[] metrics,
+        uint256[] values,
+        uint256 timestamp
+    );
+    event FundWithdrawal(
+        address indexed recipient,
+        uint256 amount,
+        string purpose,
+        uint256 timestamp
+    );
+    event DashboardContractUpdated(address newDashboard);
+    event ProposalCreated(uint256 indexed proposalId, address proposer, string description);
+    event VoteCast(address indexed voter, uint256 indexed proposalId, bool support, uint256 weight);
+    event ProposalExecuted(uint256 indexed proposalId);
+    event OperationScheduled(bytes32 indexed operationId, uint256 executionTime);
+    event TrancheAdded(uint256 indexed trancheId, string name, uint256 couponRate, uint256 seniority);
+    event TrancheBondPurchased(address indexed investor, uint256 indexed trancheId, uint256 amount, uint256 tokensSpent);
+    event TrancheCouponClaimed(address indexed investor, uint256 indexed trancheId, uint256 amount);
+    event TrancheBondRedeemed(address indexed investor, uint256 indexed trancheId, uint256 amount, uint256 tokensReceived);
+    
