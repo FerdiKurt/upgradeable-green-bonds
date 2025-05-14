@@ -93,6 +93,25 @@ contract UpgradeableGreenBonds is
     string public impactMetrics;
     string[] public greenCertifications;
     
+    // Impact reports
+    struct EnhancedImpactReport {
+        string reportURI;
+        string reportHash;
+        uint256 timestamp;
+        string impactMetricsJson; // JSON string of metrics
+        uint256 challengePeriodEnd;
+        uint256 verificationCount;
+        uint256 requiredVerifications;
+        bool finalized;
+        mapping(address => bool) hasVerified;
+        mapping(string => uint256) quantitativeMetrics; // Name -> value mapping
+        string[] metricNames;
+    }
+    
+    // Impact reports storage
+    mapping(uint256 => EnhancedImpactReport) public impactReports;
+    uint256 public impactReportCount;
+    
     
     // Governance parameters
     struct Proposal {
