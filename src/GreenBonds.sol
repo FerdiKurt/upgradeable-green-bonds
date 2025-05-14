@@ -75,6 +75,14 @@ contract UpgradeableGreenBonds is
     // Payment token (e.g., USDC, DAI)
     IERC20 public paymentToken;
     
+    // Treasury system
+    struct Treasury {
+        uint256 principalReserve;  // For bond redemption
+        uint256 couponReserve;     // For coupon payments
+        uint256 projectFunds;      // For green project implementation
+        uint256 emergencyReserve;  // For unexpected expenses
+    }
+    Treasury public treasury;
     
     // Early redemption parameters
     uint256 public earlyRedemptionPenaltyBps; // Penalty in basis points
