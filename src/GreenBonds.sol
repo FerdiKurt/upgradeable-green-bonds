@@ -1331,3 +1331,16 @@ contract UpgradeableGreenBonds is
         );
     }
     
+    /// @notice Override of ERC20 transfer to handle coupon claim dates
+    /// @param to Recipient address
+    /// @param amount Amount to transfer
+    /// @return bool Success
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        // Update coupon claim date for receiver if they don't have one
+        if (lastCouponClaimDate[to] == 0 && amount > 0) {
+            lastCouponClaimDate[to] = block.timestamp;
+        }
+        
+        return super.transfer(to, amount);
+    }
+    
