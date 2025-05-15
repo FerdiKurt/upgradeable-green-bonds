@@ -1038,3 +1038,28 @@ contract UpgradeableGreenBonds is
         return impactReports[reportId].metricNames;
     }
     
+    /// @notice Create a governance proposal
+    /// @param description Description of the proposal
+    /// @param target Contract address to call if proposal passes
+    /// @param callData Function call data to execute
+    /// @dev Only callable by issuer
+    function createProposal(string memory description, address target, bytes memory callData) 
+        external 
+        onlyRole(ISSUER_ROLE) 
+        whenNotPaused
+        returns (uint256) 
+    {
+        uint256 proposalId = proposalCount++;
+        Proposal storage proposal = proposals[proposalId];
+        
+        proposal.proposer = msg.sender;
+        proposal.description = description;
+        proposal.target = target;
+        proposal.callData = callData;
+        proposal.startTime = block.timestamp;
+        proposal.endTime = block.timestamp + votingPeriod;
+        proposal.executed = false;
+        
+        emit ProposalCreated(proposalId, msg.sender, description);
+        return proposalId;
+    }
