@@ -1190,3 +1190,29 @@ contract UpgradeableGreenBonds is
         emit FundWithdrawal(recipient, amount, purpose, block.timestamp);
     }
     
+    /// @notice Emergency withdraw function for issuer (time-locked)
+    /// @param amount Amount to withdraw
+    /// @dev Protected by timelock
+    function issuerEmergencyWithdraw(uint256 amount) 
+        external 
+        onlyRole(ISSUER_ROLE) 
+        nonReentrant 
+        whenNotPaused 
+    {
+        bytes32 operationId = keccak256(abi.encodePacked("emergencyWithdraw", amount, block.timestamp));
+        
+        if (operationTimestamps[operationId] == 0) {
+            scheduleOperation(operationId);
+            return;
+        }
+        
+        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
+        if (amount > treasury.emergencyReserve) revert InsufficientFunds();
+        
+        treasury.emergencyReserve -= amount;
+        
+        paymentToken.safeTransfer(msg.sender, amount);
+        
+        emit FundWithdrawal(msg.sender, amount, "Emergency Withdrawal", block.timestamp);
+    }
+    
