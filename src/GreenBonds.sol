@@ -1021,3 +1021,12 @@ contract UpgradeableGreenBonds is
         emit ImpactReportChallenged(reportId, msg.sender, reason);
     }
     
+    /// @notice Get an impact report's quantitative metrics
+    /// @param reportId ID of the report
+    /// @param metricName Name of the metric
+    /// @return uint256 Value of the requested metric
+    function getImpactMetricValue(uint256 reportId, string memory metricName) external view returns (uint256) {
+        if (reportId >= impactReportCount) revert ReportDoesNotExist();
+        return impactReports[reportId].quantitativeMetrics[metricName];
+    }
+    
