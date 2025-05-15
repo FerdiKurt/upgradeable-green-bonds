@@ -986,7 +986,6 @@ contract UpgradeableGreenBonds is
             emit ImpactReportFinalized(reportId);
             
             // Update green premium based on impact metrics
-            // This is a simplified example - real implementation would evaluate metrics
             if (greenPremiumRate < (maxCouponRate - baseCouponRate)) {
                 uint256 oldCouponRate = couponRate;
                 greenPremiumRate += 50; // Increase by 0.5%
@@ -996,5 +995,29 @@ contract UpgradeableGreenBonds is
                 emit BondParametersUpdated(oldCouponRate, couponRate, couponPeriod, couponPeriod);
             }
         }
+    }
+    
+    /// @notice Challenge an impact report
+    /// @param reportId ID of the report to challenge
+    /// @param reason Reason for the challenge
+    /// @dev Prevents finalization and requires review
+    function challengeImpactReport(uint256 reportId, string memory reason) external onlyRole(VERIFIER_ROLE) whenNotPaused {
+        if (reportId >= impactReportCount) revert ReportDoesNotExist();
+        
+        EnhancedImpactReport storage report = impactReports[reportId];
+        if (report.finalized) revert ReportAlreadyVerified();
+        if (block.timestamp > report.challengePeriodEnd) revert ChallengePeriodEnded();
+        
+        // Extend challenge period and reset verification count
+        report.challengePeriodEnd = block.timestamp + 7 days;
+        report.verificationCount = 0;
+        
+        // Reset all verifications
+        for (uint256 i = 0; i < report.verificationCount; i++) {
+            address verifier = msg.sender; 
+            report.hasVerified[verifier] = false;
+        }
+        
+        emit ImpactReportChallenged(reportId, msg.sender, reason);
     }
     
