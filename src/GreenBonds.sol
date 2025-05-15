@@ -923,3 +923,44 @@ contract UpgradeableGreenBonds is
         emit TrancheBondRedeemed(msg.sender, trancheId, bondAmount, totalPayment);
     }
     
+    /// @notice Add environmental impact report with enhanced metrics
+    /// @param reportURI URI pointing to the full report document
+    /// @param reportHash Hash of the report for verification
+    /// @param impactMetricsJson JSON string containing detailed metrics
+    /// @param metricNames Array of metric names for quantitative tracking
+    /// @param metricValues Array of corresponding metric values
+    /// @param challengePeriod Duration in seconds for challenge period
+    /// @param requiredVerifications Number of verifiers required to finalize
+    /// @dev Only callable by issuer
+    function addEnhancedImpactReport(
+        string memory reportURI,
+        string memory reportHash,
+        string memory impactMetricsJson,
+        string[] memory metricNames,
+        uint256[] memory metricValues,
+        uint256 challengePeriod,
+        uint256 requiredVerifications
+    ) external onlyRole(ISSUER_ROLE) whenNotPaused {
+        require(metricNames.length == metricValues.length, "Arrays length mismatch");
+        
+        uint256 reportId = impactReportCount++;
+        EnhancedImpactReport storage newReport = impactReports[reportId];
+        
+        newReport.reportURI = reportURI;
+        newReport.reportHash = reportHash;
+        newReport.timestamp = block.timestamp;
+        newReport.impactMetricsJson = impactMetricsJson;
+        newReport.challengePeriodEnd = block.timestamp + challengePeriod;
+        newReport.requiredVerifications = requiredVerifications;
+        newReport.finalized = false;
+        
+        // Store quantitative metrics
+        for (uint256 i = 0; i < metricNames.length; i++) {
+            newReport.quantitativeMetrics[metricNames[i]] = metricValues[i];
+            newReport.metricNames.push(metricNames[i]);
+        }
+        
+        emit ImpactReportAdded(reportId, reportURI);
+        emit ImpactMetricsAchieved(reportId, metricNames, metricValues, block.timestamp);
+    }
+    
