@@ -1170,3 +1170,23 @@ contract UpgradeableGreenBonds is
         emit FundsAllocated(projectComponent, amount);
     }
     
+    /// @notice Withdraw funds from treasury for project implementation
+    /// @param recipient Recipient address
+    /// @param amount Amount to withdraw
+    /// @param purpose Description of withdrawal purpose
+    /// @dev Only callable by treasurer
+    function withdrawProjectFunds(address recipient, uint256 amount, string memory purpose) 
+        external 
+        onlyRole(TREASURY_ROLE) 
+        nonReentrant 
+        whenNotPaused 
+    {
+        require(amount <= treasury.projectFunds, "Insufficient project funds");
+        
+        treasury.projectFunds -= amount;
+        
+        paymentToken.safeTransfer(recipient, amount);
+        
+        emit FundWithdrawal(recipient, amount, purpose, block.timestamp);
+    }
+    
