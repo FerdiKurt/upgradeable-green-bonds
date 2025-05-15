@@ -1113,3 +1113,26 @@ contract UpgradeableGreenBonds is
         emit ProposalExecuted(proposalId);
     }
     
+    /// @notice Update coupon period
+    /// @param newCouponPeriod New period in seconds
+    /// @dev Only callable by issuer with timelock
+    function updateCouponPeriod(uint256 newCouponPeriod) 
+        external 
+        onlyRole(ISSUER_ROLE)
+        whenNotPaused 
+    {
+        bytes32 operationId = keccak256(abi.encodePacked("updateCouponPeriod", newCouponPeriod, block.timestamp));
+        
+        if (operationTimestamps[operationId] == 0) {
+            scheduleOperation(operationId);
+            return;
+        }
+        
+        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
+        
+        uint256 oldCouponPeriod = couponPeriod;
+        couponPeriod = newCouponPeriod;
+        
+        emit BondParametersUpdated(couponRate, couponRate, oldCouponPeriod, couponPeriod);
+    }
+    
