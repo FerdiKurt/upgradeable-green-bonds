@@ -676,3 +676,58 @@ contract UpgradeableGreenBonds is
         emit TrancheAdded(trancheId, _name, _couponRate, _seniority);
     }
     
+    /// @notice Purchase bonds from a specific tranche
+    /// @param trancheId ID of the tranche to purchase from
+    /// @param bondAmount Amount of bonds to purchase
+    /// @dev Similar to regular bond purchase but for specific tranches
+    function purchaseTrancheBonds(uint256 trancheId, uint256 bondAmount) external nonReentrant whenNotPaused {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        Tranche storage tranche = tranches[trancheId];
+        
+        if (block.timestamp >= maturityDate) revert BondMatured();
+        if (bondAmount == 0) revert InvalidBondAmount();
+        if (bondAmount > tranche.availableSupply) revert InsufficientBondsAvailable();
+        
+        // Calculate cost safely
+        uint256 cost = bondAmount * tranche.faceValue;
+        
+        // Transfer payment tokens from buyer to contract
+        paymentToken.safeTransferFrom(msg.sender, address(this), cost);
+        
+        // Update tranche holdings
+        tranche.holdings[msg.sender] += bondAmount;
+        tranche.availableSupply -= bondAmount;
+        tranche.lastCouponClaimDate[msg.sender] = block.timestamp;
+        
+        // Allocate funds to different reserves - safely breaking down calculations
+        uint256 timeToMaturity = 0;
+        if (maturityDate > block.timestamp) {
+            timeToMaturity = maturityDate - block.timestamp;
+        }
+        
+        uint256 couponAllocation = 0;
+        if (timeToMaturity > 0) {
+            // Calculate annual coupon
+            uint256 annualCouponPercentage = tranche.couponRate;
+            uint256 annualCouponAmount = cost * annualCouponPercentage / 10000;
+            
+            // Calculate time-proportional coupon allocation
+            uint256 secondsPerYear = 365 days;
+            couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
+        }
+        
+        // Update treasury balances
+        treasury.principalReserve += cost;
+        treasury.couponReserve += couponAllocation;
+        
+        uint256 remainingAmount = cost - couponAllocation;
+        uint256 projectAllocation = (remainingAmount * 90) / 100;  // 90% for project
+        uint256 emergencyAllocation = remainingAmount - projectAllocation; // Remainder for emergency
+        
+        treasury.projectFunds += projectAllocation;
+        treasury.emergencyReserve += emergencyAllocation;
+        
+        emit TrancheBondPurchased(msg.sender, trancheId, bondAmount, cost);
+        emit FundsAllocated("Principal Reserve", cost);
+        emit FundsAllocated("Coupon Reserve", couponAllocation);
+    }
