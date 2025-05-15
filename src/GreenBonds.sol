@@ -1136,3 +1136,14 @@ contract UpgradeableGreenBonds is
         emit BondParametersUpdated(couponRate, couponRate, oldCouponPeriod, couponPeriod);
     }
     
+    /// @notice Set early redemption parameters
+    /// @param enabled Whether early redemption is enabled
+    /// @param penaltyBps Penalty in basis points for early redemption
+    /// @dev Only callable by issuer
+    function setEarlyRedemptionParams(bool enabled, uint256 penaltyBps) external onlyRole(ISSUER_ROLE) whenNotPaused {
+        earlyRedemptionEnabled = enabled;
+        earlyRedemptionPenaltyBps = penaltyBps;
+        
+        emit EarlyRedemptionStatusChanged(enabled);
+    }
+    
