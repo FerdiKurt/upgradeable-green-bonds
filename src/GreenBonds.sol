@@ -1090,3 +1090,26 @@ contract UpgradeableGreenBonds is
         emit VoteCast(msg.sender, proposalId, support, votingPower);
     }
     
+    /// @notice Execute a successful proposal
+    /// @param proposalId ID of the proposal
+    /// @dev Only executable after voting period and if quorum is reached
+    function executeProposal(uint256 proposalId) external nonReentrant whenNotPaused {
+        if (proposalId >= proposalCount) revert ProposalDoesNotExist();
+        
+        Proposal storage proposal = proposals[proposalId];
+        if (block.timestamp <= proposal.endTime) revert VotingPeriodEnded();
+        if (proposal.executed) revert ProposalAlreadyExecuted();
+        
+        // Check if quorum is met and proposal passed
+        if (proposal.forVotes + proposal.againstVotes < quorum) revert QuorumNotReached();
+        require(proposal.forVotes > proposal.againstVotes, "Proposal rejected");
+        
+        proposal.executed = true;
+        
+        // Execute the proposal
+        (bool success, ) = proposal.target.call(proposal.callData);
+        if (!success) revert FailedExecution();
+        
+        emit ProposalExecuted(proposalId);
+    }
+    
