@@ -1147,3 +1147,11 @@ contract UpgradeableGreenBonds is
         emit EarlyRedemptionStatusChanged(enabled);
     }
     
+    /// @notice Set the dashboard contract address
+    /// @param _dashboardContract Address of dashboard contract
+    /// @dev Only callable by admin
+    function setDashboardContract(address _dashboardContract) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        dashboardContract = _dashboardContract;
+        emit DashboardContractUpdated(_dashboardContract);
+    }
+    
