@@ -571,3 +571,81 @@ contract UpgradeableGreenBonds is
         emit BondRedeemed(msg.sender, bondAmount, totalPayment);
     }
     
+    /// @notice Redeem bonds early with a penalty
+    /// @param bondAmount Amount of bonds to redeem early
+    /// @dev Calculates penalty and transfers reduced amount to investor
+    function redeemBondsEarly(uint256 bondAmount) external nonReentrant whenNotPaused {
+        if (!earlyRedemptionEnabled) revert EarlyRedemptionNotEnabled();
+        if (bondAmount == 0 || bondAmount > balanceOf(msg.sender)) revert InvalidBondAmount();
+        
+        uint256 redemptionValue = bondAmount * faceValue;
+        uint256 penalty = redemptionValue * earlyRedemptionPenaltyBps / 10000;
+        uint256 payoutAmount = redemptionValue - penalty;
+        
+        // Calculate prorated coupon using the safer approach
+        uint256 lastClaim = lastCouponClaimDate[msg.sender];
+        
+        uint256 timeSinceLastClaim;
+        if (block.timestamp <= lastClaim) {
+            timeSinceLastClaim = 0;
+        } else {
+            timeSinceLastClaim = block.timestamp - lastClaim;
+        }
+        
+        uint256 proRatedCoupon = 0;
+        if (timeSinceLastClaim > 0) {
+            // Calculate the effective coupon rate
+            uint256 effectiveRate = couponRate;
+            
+            // Calculate annual interest for the bond amount
+            uint256 interestNumerator = bondAmount * faceValue * effectiveRate;
+            uint256 annualInterest = interestNumerator / 10000;
+            
+            // Calculate interest per second
+            uint256 secondsPerYear = 365 days;
+            if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+            
+            uint256 interestPerSecond = annualInterest / secondsPerYear;
+            
+            // Calculate total interest accrued over the time period
+            proRatedCoupon = interestPerSecond * timeSinceLastClaim;
+        }
+        
+        // Burn bond tokens
+        _burn(msg.sender, bondAmount);
+        
+        // Update accounting
+        if (treasury.principalReserve >= redemptionValue) {
+            treasury.principalReserve -= redemptionValue;
+        } else {
+            treasury.principalReserve = 0;
+        }
+        treasury.emergencyReserve += penalty; // Penalty goes to emergency reserve
+        
+        if (proRatedCoupon > 0) {
+            if (treasury.couponReserve >= proRatedCoupon) {
+                treasury.couponReserve -= proRatedCoupon;
+            } else {
+                treasury.couponReserve = 0;
+            }
+        }
+        
+        // Check available balance before transfer
+        uint256 availableBalance = paymentToken.balanceOf(address(this));
+        
+        // Calculate total payout
+        uint256 totalPayout = payoutAmount + proRatedCoupon;
+        
+        // Ensure we don't try to transfer more than available
+        if (totalPayout > availableBalance) {
+            totalPayout = availableBalance;
+        }
+        
+        // Transfer funds
+        if (totalPayout > 0) {
+            paymentToken.safeTransfer(msg.sender, totalPayout);
+        }
+        
+        emit BondRedeemedEarly(msg.sender, bondAmount, totalPayout, penalty);
+    }
+    
