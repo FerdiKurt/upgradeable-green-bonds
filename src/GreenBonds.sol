@@ -780,3 +780,70 @@ contract UpgradeableGreenBonds is
         return accruedInterest;
     }
     
+    /// @notice Claim coupon for a specific tranche
+    /// @param trancheId ID of the tranche
+    function claimTrancheCoupon(uint256 trancheId) external nonReentrant whenNotPaused {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        Tranche storage tranche = tranches[trancheId];
+        
+        uint256 bondBalance = tranche.holdings[msg.sender];
+        if (bondBalance == 0) revert NoCouponAvailable();
+        
+        uint256 lastClaim = tranche.lastCouponClaimDate[msg.sender];
+        if (lastClaim == 0) revert NoCouponAvailable();
+        
+        // Calculate time since last claim
+        uint256 timeSinceLastClaim;
+        if (block.timestamp <= lastClaim) {
+            revert NoCouponAvailable();
+        } else {
+            timeSinceLastClaim = block.timestamp - lastClaim;
+        }
+        
+        // If no time has passed, no coupon is due
+        if (timeSinceLastClaim == 0) revert NoCouponAvailable();
+        
+        // Calculate annual interest per token (basis points to decimal)
+        uint256 annualInterestPerToken = tranche.faceValue * tranche.couponRate / 10000;
+        
+        // Calculate interest per second per token
+        uint256 secondsPerYear = 365 days;
+        if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+        
+        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+        
+        // Calculate interest per second for all tokens
+        uint256 interestPerSecondTotal = interestPerSecondPerToken * bondBalance;
+        
+        // Calculate total claimable coupon
+        uint256 claimableAmount = interestPerSecondTotal * timeSinceLastClaim;
+        
+        if (claimableAmount == 0) revert NoCouponAvailable();
+        
+        // Update last claim date
+        tranche.lastCouponClaimDate[msg.sender] = block.timestamp;
+        
+        // Update treasury accounting with underflow protection
+        if (treasury.couponReserve >= claimableAmount) {
+            treasury.couponReserve -= claimableAmount;
+        } else {
+            treasury.couponReserve = 0;
+        }
+        
+        // Check available balance before transfer
+        uint256 availableBalance = paymentToken.balanceOf(address(this));
+        
+        // Ensure we don't try to transfer more than available
+        uint256 transferAmount = claimableAmount;
+        if (transferAmount > availableBalance) {
+            transferAmount = availableBalance;
+        }
+        
+        // Transfer coupon payment
+        if (transferAmount > 0) {
+            paymentToken.safeTransfer(msg.sender, transferAmount);
+        }
+        
+        emit TrancheCouponClaimed(msg.sender, trancheId, transferAmount);
+    }
+    
