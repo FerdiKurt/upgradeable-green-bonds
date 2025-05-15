@@ -1216,3 +1216,118 @@ contract UpgradeableGreenBonds is
         emit FundWithdrawal(msg.sender, amount, "Emergency Withdrawal", block.timestamp);
     }
     
+    /// @notice Get the treasury status
+    /// @return principalReserveResult Amount reserved for principal repayment
+    /// @return couponReserveResult Amount reserved for coupon payments
+    /// @return projectFundsResult Funds available for green projects
+    /// @return emergencyReserveResult Emergency reserve funds
+    /// @return totalBalanceResult Total balance of payment tokens in the contract
+    function getTreasuryStatus() external view returns (
+        uint256 principalReserveResult,
+        uint256 couponReserveResult,
+        uint256 projectFundsResult,
+        uint256 emergencyReserveResult,
+        uint256 totalBalanceResult
+    ) {
+        return (
+            treasury.principalReserve,
+            treasury.couponReserve,
+            treasury.projectFunds,
+            treasury.emergencyReserve,
+            paymentToken.balanceOf(address(this))
+        );
+    }
+    
+    /// @notice Get the number of impact reports
+    /// @return uint256 Total count of impact reports
+    function getImpactReportCount() external view returns (uint256) {
+        return impactReportCount;
+    }
+    
+    /// @notice Get the number of green certifications
+    /// @return uint256 Total count of green certifications
+    function getGreenCertificationCount() external view returns (uint256) {
+        return greenCertifications.length;
+    }
+    
+    /// @notice Get tranche details
+    /// @param trancheId ID of the tranche
+    /// @return trancheName Tranche name
+    /// @return trancheFaceValue Face value of tranche bonds
+    /// @return trancheCouponRate Coupon rate for tranche
+    /// @return trancheSeniority Seniority level (lower is more senior)
+    /// @return trancheTotalSupply Total supply of tranche
+    /// @return trancheAvailableSupply Available supply of tranche
+    function getTrancheDetails(uint256 trancheId) external view returns (
+        string memory trancheName,
+        uint256 trancheFaceValue,
+        uint256 trancheCouponRate,
+        uint256 trancheSeniority,
+        uint256 trancheTotalSupply,
+        uint256 trancheAvailableSupply
+    ) {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        Tranche storage tranche = tranches[trancheId];
+        
+        return (
+            tranche.name,
+            tranche.faceValue,
+            tranche.couponRate,
+            tranche.seniority,
+            tranche.totalSupply,
+            tranche.availableSupply
+        );
+    }
+    
+    /// @notice Get tranche holdings for an address
+    /// @param trancheId ID of the tranche
+    /// @param holder Address of the holder
+    /// @return uint256 Bond holdings in the tranche
+    function getTrancheHoldings(uint256 trancheId, address holder) external view returns (uint256) {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        return tranches[trancheId].holdings[holder];
+    }
+    
+    /// @notice Get bond status
+    /// @return bondNameResult Name of the bond
+    /// @return bondSymbolResult Symbol of the bond
+    /// @return faceValueResult Face value of each bond
+    /// @return bondTotalSupplyResult Total supply of bonds
+    /// @return availableSupplyResult Available supply of bonds
+    /// @return baseCouponRateResult Base coupon rate
+    /// @return greenPremiumRateResult Green premium rate
+    /// @return couponRateResult Current coupon rate
+    /// @return maturityDateResult Maturity date of the bond
+    /// @return issuanceDateResult Issuance date of the bond
+    /// @return earlyRedemptionEnabledResult Whether early redemption is enabled
+    /// @return earlyRedemptionPenaltyBpsResult Early redemption penalty in basis points
+    function getBondStatus() external view returns (
+        string memory bondNameResult,
+        string memory bondSymbolResult,
+        uint256 faceValueResult,
+        uint256 bondTotalSupplyResult,
+        uint256 availableSupplyResult,
+        uint256 baseCouponRateResult,
+        uint256 greenPremiumRateResult,
+        uint256 couponRateResult,
+        uint256 maturityDateResult,
+        uint256 issuanceDateResult,
+        bool earlyRedemptionEnabledResult,
+        uint256 earlyRedemptionPenaltyBpsResult
+    ) {
+        return (
+            bondName,
+            bondSymbol,
+            faceValue,
+            bondTotalSupply,
+            availableSupply,
+            baseCouponRate,
+            greenPremiumRate,
+            couponRate,
+            maturityDate,
+            issuanceDate,
+            earlyRedemptionEnabled,
+            earlyRedemptionPenaltyBps
+        );
+    }
+    
