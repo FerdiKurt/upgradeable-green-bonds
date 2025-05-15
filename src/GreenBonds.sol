@@ -1030,3 +1030,11 @@ contract UpgradeableGreenBonds is
         return impactReports[reportId].quantitativeMetrics[metricName];
     }
     
+    /// @notice Get all metric names for a report
+    /// @param reportId ID of the report
+    /// @return string[] Array of metric names
+    function getImpactMetricNames(uint256 reportId) external view returns (string[] memory) {
+        if (reportId >= impactReportCount) revert ReportDoesNotExist();
+        return impactReports[reportId].metricNames;
+    }
+    
