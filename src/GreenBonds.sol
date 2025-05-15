@@ -649,3 +649,30 @@ contract UpgradeableGreenBonds is
         emit BondRedeemedEarly(msg.sender, bondAmount, totalPayout, penalty);
     }
     
+    /// @notice Add a new tranche of bonds with different risk/reward profile
+    /// @param _name Name of the tranche
+    /// @param _faceValue Face value of each bond in this tranche
+    /// @param _couponRate Coupon rate for this tranche in basis points
+    /// @param _seniority Seniority level (lower is more senior)
+    /// @param _totalSupply Total supply of this tranche
+    /// @dev Only callable by issuer
+    function addTranche(
+        string memory _name,
+        uint256 _faceValue,
+        uint256 _couponRate,
+        uint256 _seniority,
+        uint256 _totalSupply
+    ) external onlyRole(ISSUER_ROLE) whenNotPaused {
+        uint256 trancheId = trancheCount++;
+        Tranche storage newTranche = tranches[trancheId];
+        
+        newTranche.name = _name;
+        newTranche.faceValue = _faceValue;
+        newTranche.couponRate = _couponRate;
+        newTranche.seniority = _seniority;
+        newTranche.totalSupply = _totalSupply;
+        newTranche.availableSupply = _totalSupply;
+        
+        emit TrancheAdded(trancheId, _name, _couponRate, _seniority);
+    }
+    
