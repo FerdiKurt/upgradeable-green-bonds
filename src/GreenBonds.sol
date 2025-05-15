@@ -731,3 +731,52 @@ contract UpgradeableGreenBonds is
         emit FundsAllocated("Principal Reserve", cost);
         emit FundsAllocated("Coupon Reserve", couponAllocation);
     }
+    
+    /// @notice Calculate claimable coupon for a tranche bondholder
+    /// @param trancheId ID of the tranche
+    /// @param investor Address of the investor
+    /// @return uint256 Claimable coupon amount
+    function calculateTrancheCoupon(uint256 trancheId, address investor) public view returns (uint256) {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        Tranche storage tranche = tranches[trancheId];
+        
+        // Early returns for edge cases
+        uint256 bondBalance = tranche.holdings[investor];
+        if (bondBalance == 0) return 0;
+        
+        uint256 lastClaim = tranche.lastCouponClaimDate[investor];
+        if (lastClaim == 0) return 0;
+        
+        // Safely calculate time since last claim
+        uint256 timeSinceLastClaim;
+        if (block.timestamp < lastClaim) {
+            // This should never happen, but just in case of timestamp manipulation
+            return 0;
+        } else {
+            timeSinceLastClaim = block.timestamp - lastClaim;
+        }
+        
+        // If no time has passed, no coupon is due
+        if (timeSinceLastClaim == 0) return 0;
+        
+        // Calculate the effective coupon rate (basis points to decimal)
+        uint256 effectiveRate = tranche.couponRate;
+        
+        // Calculate annual interest for a single token
+        // We divide by 10000 to convert from basis points to actual percentage
+        uint256 interestNumerator = tranche.faceValue * effectiveRate;
+        uint256 annualInterestPerToken = interestNumerator / 10000;
+        
+        // Calculate interest per second for a single token
+        uint256 secondsPerYear = 365 days;
+        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+        
+        // Calculate interest per second for all tokens held
+        uint256 totalInterestPerSecond = interestPerSecondPerToken * bondBalance;
+        
+        // Calculate total interest accrued over the time period
+        uint256 accruedInterest = totalInterestPerSecond * timeSinceLastClaim;
+        
+        return accruedInterest;
+    }
+    
