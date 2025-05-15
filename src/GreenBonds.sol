@@ -1063,3 +1063,30 @@ contract UpgradeableGreenBonds is
         emit ProposalCreated(proposalId, msg.sender, description);
         return proposalId;
     }
+    
+    /// @notice Cast a vote on a proposal
+    /// @param proposalId ID of the proposal
+    /// @param support Whether to support the proposal
+    /// @dev Voting power is proportional to bond holdings
+    function castVote(uint256 proposalId, bool support) external whenNotPaused {
+        if (proposalId >= proposalCount) revert ProposalDoesNotExist();
+        
+        Proposal storage proposal = proposals[proposalId];
+        if (block.timestamp > proposal.endTime) revert VotingPeriodEnded();
+        if (proposal.executed) revert ProposalAlreadyExecuted();
+        if (proposal.hasVoted[msg.sender]) revert AlreadyVoted();
+        
+        uint256 votingPower = balanceOf(msg.sender);
+        require(votingPower > 0, "No voting power");
+        
+        proposal.hasVoted[msg.sender] = true;
+        
+        if (support) {
+            proposal.forVotes += votingPower;
+        } else {
+            proposal.againstVotes += votingPower;
+        }
+        
+        emit VoteCast(msg.sender, proposalId, support, votingPower);
+    }
+    
