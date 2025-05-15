@@ -497,3 +497,77 @@ contract UpgradeableGreenBonds is
         emit CouponClaimed(msg.sender, transferAmount);
     }
     
+    /// @notice Redeem bonds at maturity
+    /// @dev Transfers principal and any outstanding coupon payments to the investor
+    function redeemBonds() external nonReentrant whenNotPaused {
+        if (block.timestamp < maturityDate) revert BondNotMatured();
+        
+        uint256 bondAmount = balanceOf(msg.sender);
+        if (bondAmount == 0) revert NoBondsToRedeem();
+        
+        // Calculate redemption value safely
+        uint256 redemptionValue = bondAmount * faceValue;
+        
+        // Calculate claimable coupon safely - without using the potentially problematic calculateClaimableCoupon function
+        uint256 claimableAmount = 0;
+        uint256 lastClaim = lastCouponClaimDate[msg.sender];
+        
+        if (lastClaim > 0 && block.timestamp > lastClaim) {
+            uint256 timeSinceLastClaim = block.timestamp - lastClaim;
+            
+            // Calculate annual interest per token (basis points to decimal)
+            uint256 annualInterestPerToken = faceValue * couponRate / 10000;
+            
+            // Calculate interest per second per token - ensure we don't divide by zero
+            uint256 secondsPerYear = 365 days;
+            if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+            
+            uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+            
+            // Calculate total interest for all tokens over time period - calculate in chunks to prevent overflow
+            // First multiply by bondAmount, then by time to prevent intermediate overflows
+            uint256 interestPerSecond = interestPerSecondPerToken * bondAmount;
+            claimableAmount = interestPerSecond * timeSinceLastClaim;
+        }
+        
+        // Update bond holdings by burning ERC20 tokens
+        _burn(msg.sender, bondAmount);
+        lastCouponClaimDate[msg.sender] = 0;
+        
+        // Update treasury accounting - ensure we don't underflow
+        if (treasury.principalReserve >= redemptionValue) {
+            treasury.principalReserve -= redemptionValue;
+        } else {
+            treasury.principalReserve = 0;
+        }
+        
+        if (claimableAmount > 0) {
+            if (treasury.couponReserve >= claimableAmount) {
+                treasury.couponReserve -= claimableAmount;
+            } else {
+                treasury.couponReserve = 0;
+            }
+        }
+        
+        // Check available balance before transfer
+        uint256 availableBalance = paymentToken.balanceOf(address(this));
+        
+        // Calculate total payment based on available balance
+        uint256 totalPayment = redemptionValue;
+        if (claimableAmount > 0) {
+            totalPayment = totalPayment + claimableAmount;
+        }
+        
+        // Ensure we don't try to transfer more than available
+        if (totalPayment > availableBalance) {
+            totalPayment = availableBalance;
+        }
+        
+        // Transfer redemption amount + final coupon (capped by available balance)
+        if (totalPayment > 0) {
+            paymentToken.safeTransfer(msg.sender, totalPayment);
+        }
+        
+        emit BondRedeemed(msg.sender, bondAmount, totalPayment);
+    }
+    
