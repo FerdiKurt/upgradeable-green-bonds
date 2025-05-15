@@ -1392,3 +1392,9 @@ contract UpgradeableGreenBonds is
         votingPeriod = newVotingPeriod;
     }
     
+    /// @notice Version number for this contract implementation
+    /// @return string Version identifier
+    function version() external pure returns (string memory) {
+        return "v1.0.0";
+    }
+}
