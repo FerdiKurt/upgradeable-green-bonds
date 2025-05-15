@@ -62,7 +62,7 @@ contract UpgradeableGreenBonds is
     string public bondName;
     string public bondSymbol;
     uint256 public faceValue;
-    uint256 public bondTotalSupply;  // Renamed from totalSupply to avoid conflict with ERC20
+    uint256 public bondTotalSupply;
     uint256 public availableSupply;
     uint256 public baseCouponRate; // Base rate in basis points (e.g., 500 = 5.00%)
     uint256 public greenPremiumRate; // Additional rate based on green performance
@@ -327,7 +327,6 @@ contract UpgradeableGreenBonds is
         if (bondAmount == 0) revert InvalidBondAmount();
         if (bondAmount > availableSupply) revert InsufficientBondsAvailable();
         
-        // Calculate cost safely
         uint256 cost = bondAmount * faceValue;
         
         // Transfer payment tokens from buyer to contract
@@ -336,7 +335,7 @@ contract UpgradeableGreenBonds is
         // Mint ERC20 tokens representing bond ownership
         _mint(msg.sender, bondAmount);
         
-        // Allocate funds to different reserves - safely breaking down calculations
+        // Allocate funds to different reserves
         uint256 timeToMaturity = 0;
         if (maturityDate > block.timestamp) {
             timeToMaturity = maturityDate - block.timestamp;
@@ -387,7 +386,7 @@ contract UpgradeableGreenBonds is
         uint256 lastClaim = lastCouponClaimDate[investor];
         if (lastClaim == 0) return 0;
         
-        // Safely calculate time since last claim
+        // Calculate time since last claim
         uint256 timeSinceLastClaim;
         if (block.timestamp < lastClaim) {
             // This should never happen, but just in case of timestamp manipulation
@@ -399,17 +398,14 @@ contract UpgradeableGreenBonds is
         // If no time has passed, no coupon is due
         if (timeSinceLastClaim == 0) return 0;
         
-        // We'll use a step-by-step calculation approach to avoid overflows
         
         // Calculate the effective coupon rate (basis points to decimal)
         // 500 basis points (5%) would become 0.05 * PRECISION_FACTOR
         uint256 effectiveRate = couponRate;
         
-        // Calculate annual interest for a single token with high precision
-        // We divide by 10000 to convert from basis points to actual percentage
         uint256 annualInterestPerToken;
         
-        // First calculate (faceValue * effectiveRate) which is safe from overflow
+        // First calculate (faceValue * effectiveRate) 
         uint256 interestNumerator = faceValue * effectiveRate;
         
         // Then divide by 10000 to get the actual interest amount
@@ -418,7 +414,7 @@ contract UpgradeableGreenBonds is
         // Calculate daily interest rate (safeguard against division by zero)
         uint256 secondsPerYear = 365 days;
         
-        if (secondsPerYear == 0) return 0; // Should never happen, but defensive coding
+        if (secondsPerYear == 0) return 0; // Should never happen
         
         // Calculate interest per second for a single token
         uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
@@ -458,7 +454,7 @@ contract UpgradeableGreenBonds is
         
         // Calculate interest per second per token
         uint256 secondsPerYear = 365 days;
-        if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+        if (secondsPerYear == 0) secondsPerYear = 1;
         
         uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
         
@@ -473,7 +469,7 @@ contract UpgradeableGreenBonds is
         // Update last claim date
         lastCouponClaimDate[msg.sender] = block.timestamp;
         
-        // Update treasury accounting with underflow protection
+        // Update treasury accounting 
         if (treasury.couponReserve >= claimableAmount) {
             treasury.couponReserve -= claimableAmount;
         } else {
@@ -505,10 +501,10 @@ contract UpgradeableGreenBonds is
         uint256 bondAmount = balanceOf(msg.sender);
         if (bondAmount == 0) revert NoBondsToRedeem();
         
-        // Calculate redemption value safely
+        // Calculate redemption value
         uint256 redemptionValue = bondAmount * faceValue;
         
-        // Calculate claimable coupon safely - without using the potentially problematic calculateClaimableCoupon function
+        // Calculate claimable coupon
         uint256 claimableAmount = 0;
         uint256 lastClaim = lastCouponClaimDate[msg.sender];
         
@@ -520,12 +516,11 @@ contract UpgradeableGreenBonds is
             
             // Calculate interest per second per token - ensure we don't divide by zero
             uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+            if (secondsPerYear == 0) secondsPerYear = 1; 
             
             uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
             
-            // Calculate total interest for all tokens over time period - calculate in chunks to prevent overflow
-            // First multiply by bondAmount, then by time to prevent intermediate overflows
+            // Calculate total interest for all tokens over time period 
             uint256 interestPerSecond = interestPerSecondPerToken * bondAmount;
             claimableAmount = interestPerSecond * timeSinceLastClaim;
         }
@@ -534,7 +529,7 @@ contract UpgradeableGreenBonds is
         _burn(msg.sender, bondAmount);
         lastCouponClaimDate[msg.sender] = 0;
         
-        // Update treasury accounting - ensure we don't underflow
+        // Update treasury accounting 
         if (treasury.principalReserve >= redemptionValue) {
             treasury.principalReserve -= redemptionValue;
         } else {
@@ -582,7 +577,7 @@ contract UpgradeableGreenBonds is
         uint256 penalty = redemptionValue * earlyRedemptionPenaltyBps / 10000;
         uint256 payoutAmount = redemptionValue - penalty;
         
-        // Calculate prorated coupon using the safer approach
+        // Calculate prorated coupon 
         uint256 lastClaim = lastCouponClaimDate[msg.sender];
         
         uint256 timeSinceLastClaim;
@@ -603,7 +598,7 @@ contract UpgradeableGreenBonds is
             
             // Calculate interest per second
             uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+            if (secondsPerYear == 0) secondsPerYear = 1; 
             
             uint256 interestPerSecond = annualInterest / secondsPerYear;
             
@@ -688,7 +683,6 @@ contract UpgradeableGreenBonds is
         if (bondAmount == 0) revert InvalidBondAmount();
         if (bondAmount > tranche.availableSupply) revert InsufficientBondsAvailable();
         
-        // Calculate cost safely
         uint256 cost = bondAmount * tranche.faceValue;
         
         // Transfer payment tokens from buyer to contract
@@ -699,7 +693,7 @@ contract UpgradeableGreenBonds is
         tranche.availableSupply -= bondAmount;
         tranche.lastCouponClaimDate[msg.sender] = block.timestamp;
         
-        // Allocate funds to different reserves - safely breaking down calculations
+        // Allocate funds to different reserves 
         uint256 timeToMaturity = 0;
         if (maturityDate > block.timestamp) {
             timeToMaturity = maturityDate - block.timestamp;
@@ -747,7 +741,7 @@ contract UpgradeableGreenBonds is
         uint256 lastClaim = tranche.lastCouponClaimDate[investor];
         if (lastClaim == 0) return 0;
         
-        // Safely calculate time since last claim
+        // Time since last claim
         uint256 timeSinceLastClaim;
         if (block.timestamp < lastClaim) {
             // This should never happen, but just in case of timestamp manipulation
@@ -763,7 +757,6 @@ contract UpgradeableGreenBonds is
         uint256 effectiveRate = tranche.couponRate;
         
         // Calculate annual interest for a single token
-        // We divide by 10000 to convert from basis points to actual percentage
         uint256 interestNumerator = tranche.faceValue * effectiveRate;
         uint256 annualInterestPerToken = interestNumerator / 10000;
         
@@ -808,7 +801,7 @@ contract UpgradeableGreenBonds is
         
         // Calculate interest per second per token
         uint256 secondsPerYear = 365 days;
-        if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+        if (secondsPerYear == 0) secondsPerYear = 1; 
         
         uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
         
@@ -823,7 +816,7 @@ contract UpgradeableGreenBonds is
         // Update last claim date
         tranche.lastCouponClaimDate[msg.sender] = block.timestamp;
         
-        // Update treasury accounting with underflow protection
+        // Update treasury accounting
         if (treasury.couponReserve >= claimableAmount) {
             treasury.couponReserve -= claimableAmount;
         } else {
@@ -858,10 +851,10 @@ contract UpgradeableGreenBonds is
         uint256 bondAmount = tranche.holdings[msg.sender];
         if (bondAmount == 0) revert NoBondsToRedeem();
         
-        // Calculate redemption value safely
+        // Calculate redemption value 
         uint256 redemptionValue = bondAmount * tranche.faceValue;
         
-        // Calculate claimable coupon safely - inline calculation instead of using the function
+        // Calculate claimable coupon 
         uint256 claimableAmount = 0;
         uint256 lastClaim = tranche.lastCouponClaimDate[msg.sender];
         
@@ -873,11 +866,9 @@ contract UpgradeableGreenBonds is
             
             // Calculate interest per second per token
             uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1; // Defensive programming
+            if (secondsPerYear == 0) secondsPerYear = 1;
             
             uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
-            
-            // Break down multiplication to prevent overflow
             uint256 interestPerSecond = interestPerSecondPerToken * bondAmount;
             claimableAmount = interestPerSecond * timeSinceLastClaim;
         }
@@ -886,7 +877,7 @@ contract UpgradeableGreenBonds is
         tranche.holdings[msg.sender] = 0;
         tranche.lastCouponClaimDate[msg.sender] = 0;
         
-        // Update treasury accounting - with overflow protection
+        // Update treasury accounting 
         if (treasury.principalReserve >= redemptionValue) {
             treasury.principalReserve -= redemptionValue;
         } else {
