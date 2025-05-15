@@ -964,3 +964,37 @@ contract UpgradeableGreenBonds is
         emit ImpactMetricsAchieved(reportId, metricNames, metricValues, block.timestamp);
     }
     
+    /// @notice Verify an impact report
+    /// @param reportId ID of the report to verify
+    /// @dev Requires multiple verifications to finalize
+    function verifyImpactReport(uint256 reportId) external onlyRole(VERIFIER_ROLE) whenNotPaused {
+        if (reportId >= impactReportCount) revert ReportDoesNotExist();
+        
+        EnhancedImpactReport storage report = impactReports[reportId];
+        if (report.finalized) revert ReportAlreadyVerified();
+        if (block.timestamp > report.challengePeriodEnd) revert ChallengePeriodEnded();
+        if (report.hasVerified[msg.sender]) revert AlreadyVoted();
+        
+        report.hasVerified[msg.sender] = true;
+        report.verificationCount++;
+        
+        emit ImpactReportVerified(reportId, msg.sender);
+        
+        // Check if report has reached required verifications
+        if (report.verificationCount >= report.requiredVerifications) {
+            report.finalized = true;
+            emit ImpactReportFinalized(reportId);
+            
+            // Update green premium based on impact metrics
+            // This is a simplified example - real implementation would evaluate metrics
+            if (greenPremiumRate < (maxCouponRate - baseCouponRate)) {
+                uint256 oldCouponRate = couponRate;
+                greenPremiumRate += 50; // Increase by 0.5%
+                couponRate = baseCouponRate + greenPremiumRate;
+                
+                emit CouponRateUpdated(couponRate);
+                emit BondParametersUpdated(oldCouponRate, couponRate, couponPeriod, couponPeriod);
+            }
+        }
+    }
+    
