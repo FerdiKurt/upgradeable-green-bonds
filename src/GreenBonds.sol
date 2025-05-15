@@ -1155,3 +1155,18 @@ contract UpgradeableGreenBonds is
         emit DashboardContractUpdated(_dashboardContract);
     }
     
+    /// @notice Allocate funds to a project component
+    /// @param projectComponent Name of component
+    /// @param amount Amount to allocate
+    /// @dev Records allocation in events but doesn't actually move funds
+    function allocateFunds(string memory projectComponent, uint256 amount) 
+        external 
+        onlyRole(TREASURY_ROLE) 
+        whenNotPaused 
+    {
+        require(amount <= treasury.projectFunds, "Insufficient project funds");
+        
+        treasury.projectFunds -= amount;
+        emit FundsAllocated(projectComponent, amount);
+    }
+    
