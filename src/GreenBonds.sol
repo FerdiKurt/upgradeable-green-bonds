@@ -1358,3 +1358,37 @@ contract UpgradeableGreenBonds is
         return super.transferFrom(from, to, amount);
     }
     
+    /// @notice Get governance parameters
+    /// @return quorumResult Current quorum requirement
+    /// @return votingPeriodResult Current voting period
+    /// @return proposalCountResult Total proposal count
+    function getGovernanceParams() external view returns (
+        uint256 quorumResult,
+        uint256 votingPeriodResult,
+        uint256 proposalCountResult
+    ) {
+        return (quorum, votingPeriod, proposalCount);
+    }
+    
+    /// @notice Update governance parameters
+    /// @param newQuorum New quorum value
+    /// @param newVotingPeriod New voting period
+    /// @dev Only callable by admin with timelock
+    function updateGovernanceParams(uint256 newQuorum, uint256 newVotingPeriod) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenNotPaused 
+    {
+        bytes32 operationId = keccak256(abi.encodePacked("updateGovernance", newQuorum, newVotingPeriod, block.timestamp));
+        
+        if (operationTimestamps[operationId] == 0) {
+            scheduleOperation(operationId);
+            return;
+        }
+        
+        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
+        
+        quorum = newQuorum;
+        votingPeriod = newVotingPeriod;
+    }
+    
