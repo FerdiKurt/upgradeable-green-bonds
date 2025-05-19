@@ -206,6 +206,19 @@ contract UpgradeableGreenBonds is
     event TrancheBondPurchased(address indexed investor, uint256 indexed trancheId, uint256 amount, uint256 tokensSpent);
     event TrancheCouponClaimed(address indexed investor, uint256 indexed trancheId, uint256 amount);
     event TrancheBondRedeemed(address indexed investor, uint256 indexed trancheId, uint256 amount, uint256 tokensReceived);
+    event GovernanceParamsUpdated(uint256 oldQuorum, uint256 newQuorum, uint256 oldVotingPeriod, uint256 newVotingPeriod);
+    event GreenCertificationAdded(string certification, uint256 index);
+    event OperationExecuted(bytes32 indexed operationId);
+    event FundsDeducted(string reserve, uint256 amount);
+    event ChallengePeriodExtended(uint256 indexed reportId, uint256 newEndTime);
+    event VerificationRequirementsReset(uint256 indexed reportId);
+    event EarlyRedemptionPenaltyUpdated(uint256 oldPenaltyBps, uint256 newPenaltyBps);
+    event BondMaturityReached(uint256 maturityDate);
+    event BaseCouponRateUpdated(uint256 oldRate, uint256 newRate);
+    event GreenPremiumRateUpdated(uint256 oldRate, uint256 newRate);
+    event TrancheTransfer(uint256 indexed trancheId, address indexed from, address indexed to, uint256 amount);
+    event EmergencyRecovery(address indexed recipient, uint256 amount);
+    event SecurityParameterUpdated(string parameterName, uint256 oldValue, uint256 newValue);
     
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
