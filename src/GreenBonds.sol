@@ -526,98 +526,53 @@ contract UpgradeableGreenBonds is
         return totalInterest;
     }
     
-    }
-    
-    /// @notice Redeem bonds at maturity
-    /// @dev Transfers principal and any outstanding coupon payments to the investor
-    function redeemBonds() external nonReentrant whenNotPaused {
-        if (block.timestamp < maturityDate) revert BondNotMatured();
+    /// @notice Calculate fund allocation for bond purchase
+    /// @param cost Total cost of bonds
+    /// @return couponAllocation Amount allocated for coupon payments
+    /// @return projectAllocation Amount allocated for project funds
+    /// @return emergencyAllocation Amount allocated for emergency reserve
+    function calculateFundAllocation(uint256 cost) internal view returns (
+        uint256 couponAllocation,
+        uint256 projectAllocation,
+        uint256 emergencyAllocation
+    ) {
+        uint256 maturity = maturityDate;
+        uint256 currentTime = block.timestamp;
         
-        uint256 bondAmount = balanceOf(msg.sender);
-        if (bondAmount == 0) revert NoBondsToRedeem();
-        
-        // Calculate redemption value
-        uint256 redemptionValue = bondAmount * faceValue;
-        
-        // Calculate claimable coupon
-        uint256 claimableAmount = 0;
-        uint256 lastClaim = lastCouponClaimDate[msg.sender];
-        
-        if (lastClaim > 0 && block.timestamp > lastClaim) {
-            uint256 timeSinceLastClaim = block.timestamp - lastClaim;
-            
-            // Calculate annual interest per token (basis points to decimal)
-            uint256 annualInterestPerToken = faceValue * couponRate / 10000;
-            
-            // Calculate interest per second per token - ensure we don't divide by zero
-            uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1; 
-            
-            uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
-            
-            // Calculate total interest for all tokens over time period 
-            uint256 interestPerSecond = interestPerSecondPerToken * bondAmount;
-            claimableAmount = interestPerSecond * timeSinceLastClaim;
-        }
-        
-        // Update bond holdings by burning ERC20 tokens
-        _burn(msg.sender, bondAmount);
-        lastCouponClaimDate[msg.sender] = 0;
-        
-        // Update treasury accounting 
-        if (treasury.principalReserve >= redemptionValue) {
-            treasury.principalReserve -= redemptionValue;
-        } else {
-            treasury.principalReserve = 0;
-        }
-        
-        if (claimableAmount > 0) {
-            if (treasury.couponReserve >= claimableAmount) {
-                treasury.couponReserve -= claimableAmount;
-            } else {
-                treasury.couponReserve = 0;
+        uint256 timeToMaturity = 0;
+        if (maturity > currentTime) {
+            unchecked {
+                timeToMaturity = maturity - currentTime;
             }
         }
         
-        // Check available balance before transfer
-        uint256 availableBalance = paymentToken.balanceOf(address(this));
-        
-        // Calculate total payment based on available balance
-        uint256 totalPayment = redemptionValue;
-        if (claimableAmount > 0) {
-            totalPayment = totalPayment + claimableAmount;
+        couponAllocation = 0;
+        if (timeToMaturity > 0) {
+            // Calculate annual coupon
+            uint256 annualCouponPercentage = couponRate;
+            uint256 annualCouponAmount;
+            
+            unchecked {
+                annualCouponAmount = cost * annualCouponPercentage / 10000;
+            }
+            
+            // Calculate time-proportional coupon allocation
+            uint256 secondsPerYear = 365 days;
+            unchecked {
+                couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
+            }
         }
         
-        // Ensure we don't try to transfer more than available
-        if (totalPayment > availableBalance) {
-            totalPayment = availableBalance;
+        uint256 remainingAmount;
+        unchecked {
+            remainingAmount = cost - couponAllocation;
+            projectAllocation = (remainingAmount * 90) / 100;  // 90% for project
+            emergencyAllocation = remainingAmount - projectAllocation; // Remainder for emergency
         }
         
-        // Transfer redemption amount + final coupon (capped by available balance)
-        if (totalPayment > 0) {
-            paymentToken.safeTransfer(msg.sender, totalPayment);
-        }
-        
-        emit BondRedeemed(msg.sender, bondAmount, totalPayment);
+        return (couponAllocation, projectAllocation, emergencyAllocation);
     }
     
-    /// @notice Redeem bonds early with a penalty
-    /// @param bondAmount Amount of bonds to redeem early
-    /// @dev Calculates penalty and transfers reduced amount to investor
-    function redeemBondsEarly(uint256 bondAmount) external nonReentrant whenNotPaused {
-        if (!earlyRedemptionEnabled) revert EarlyRedemptionNotEnabled();
-        if (bondAmount == 0 || bondAmount > balanceOf(msg.sender)) revert InvalidBondAmount();
-        
-        uint256 redemptionValue = bondAmount * faceValue;
-        uint256 penalty = redemptionValue * earlyRedemptionPenaltyBps / 10000;
-        uint256 payoutAmount = redemptionValue - penalty;
-        
-        // Calculate prorated coupon 
-        uint256 lastClaim = lastCouponClaimDate[msg.sender];
-        
-        uint256 timeSinceLastClaim;
-        if (block.timestamp <= lastClaim) {
-            timeSinceLastClaim = 0;
         } else {
             timeSinceLastClaim = block.timestamp - lastClaim;
         }
