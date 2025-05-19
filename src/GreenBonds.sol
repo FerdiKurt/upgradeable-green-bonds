@@ -361,6 +361,11 @@ contract UpgradeableGreenBonds is
         emit GreenCertificationAdded(certification, index);
     }
     
+    /// @notice Check if the bond is matured
+    /// @return bool True if matured, false otherwise
+    function isBondMatured() internal view returns (bool) {
+        return block.timestamp >= maturityDate;
+    }
     
     /// @notice Check and emit maturity event if bond has matured
     function checkAndEmitMaturity() internal {
