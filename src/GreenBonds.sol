@@ -474,60 +474,58 @@ contract UpgradeableGreenBonds is
         return transferAmount;
     }
     
+    /// @notice Calculate time-based interest (core coupon calculation logic)
+    /// @param lastClaim Time of last claim
+    /// @param effectiveRate Coupon rate in basis points
+    /// @param tokenValue Face value of each token
+    /// @param tokenAmount Number of tokens
+    /// @return uint256 Interest amount
+    function calculateTimeBasedInterest(
+        uint256 lastClaim,
+        uint256 effectiveRate,
+        uint256 tokenValue,
+        uint256 tokenAmount
+    ) internal view returns (uint256) {
+        // Early returns for edge cases
+        if (tokenAmount == 0 || lastClaim == 0) return 0;
         
         // Calculate time since last claim
         uint256 timeSinceLastClaim;
         if (block.timestamp <= lastClaim) {
-            revert NoCouponAvailable();
+            return 0;
         } else {
-            timeSinceLastClaim = block.timestamp - lastClaim;
+            // Using unchecked since block.timestamp > lastClaim is already verified
+            unchecked {
+                timeSinceLastClaim = block.timestamp - lastClaim;
+            }
         }
         
-        // If no time has passed, no coupon is due
-        if (timeSinceLastClaim == 0) revert NoCouponAvailable();
+        // If no time has passed, no interest is due
+        if (timeSinceLastClaim == 0) return 0;
         
         // Calculate annual interest per token (basis points to decimal)
-        uint256 annualInterestPerToken = faceValue * couponRate / 10000;
+        uint256 annualInterestPerToken;
+        unchecked {
+            annualInterestPerToken = tokenValue * effectiveRate / 10000;
+        }
         
         // Calculate interest per second per token
         uint256 secondsPerYear = 365 days;
-        if (secondsPerYear == 0) secondsPerYear = 1;
+        if (secondsPerYear == 0) secondsPerYear = 1; // Safety check
         
-        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+        uint256 interestPerSecondPerToken;
+        uint256 totalInterestPerSecond;
+        uint256 totalInterest;
         
-        // Calculate interest per second for all tokens
-        uint256 interestPerSecondTotal = interestPerSecondPerToken * bondBalance;
-        
-        // Calculate total claimable coupon
-        uint256 claimableAmount = interestPerSecondTotal * timeSinceLastClaim;
-        
-        if (claimableAmount == 0) revert NoCouponAvailable();
-        
-        // Update last claim date
-        lastCouponClaimDate[msg.sender] = block.timestamp;
-        
-        // Update treasury accounting 
-        if (treasury.couponReserve >= claimableAmount) {
-            treasury.couponReserve -= claimableAmount;
-        } else {
-            treasury.couponReserve = 0;
+        unchecked {
+            interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+            totalInterestPerSecond = interestPerSecondPerToken * tokenAmount;
+            totalInterest = totalInterestPerSecond * timeSinceLastClaim;
         }
         
-        // Check available balance before transfer
-        uint256 availableBalance = paymentToken.balanceOf(address(this));
-        
-        // Ensure we don't try to transfer more than available
-        uint256 transferAmount = claimableAmount;
-        if (transferAmount > availableBalance) {
-            transferAmount = availableBalance;
-        }
-        
-        // Transfer coupon payment
-        if (transferAmount > 0) {
-            paymentToken.safeTransfer(msg.sender, transferAmount);
-        }
-        
-        emit CouponClaimed(msg.sender, transferAmount);
+        return totalInterest;
+    }
+    
     }
     
     /// @notice Redeem bonds at maturity
