@@ -375,60 +375,83 @@ contract UpgradeableGreenBonds is
         }
     }
     
-    }
-    
-    /// @notice Calculate claimable coupon amount for an investor
-    /// @param investor The address of the investor
-    /// @return uint256 The amount of payment tokens claimable as coupon interest
-    /// @dev Uses precise calculation with PRECISION_FACTOR
-    function calculateClaimableCoupon(address investor) public view returns (uint256) {
-        // Early returns for edge cases
-        uint256 bondBalance = balanceOf(investor);
-        if (bondBalance == 0) return 0;
-        
-        uint256 lastClaim = lastCouponClaimDate[investor];
-        if (lastClaim == 0) return 0;
-        
-        // Calculate time since last claim
-        uint256 timeSinceLastClaim;
-        if (block.timestamp < lastClaim) {
-            // This should never happen, but just in case of timestamp manipulation
-            return 0;
-        } else {
-            timeSinceLastClaim = block.timestamp - lastClaim;
+    /// @notice Update treasury balances
+    /// @param principal Amount to add to principal reserve
+    /// @param coupon Amount to add to coupon reserve
+    /// @param project Amount to add to project funds
+    /// @param emergency Amount to add to emergency reserve
+    /// @dev Internal function to update treasury balances
+    function updateTreasury(
+        int256 principal,
+        int256 coupon,
+        int256 project,
+        int256 emergency
+    ) internal {
+        // Handle principal reserve
+        if (principal > 0) {
+            treasury.principalReserve += uint256(principal);
+            emit FundsAllocated("Principal Reserve", uint256(principal));
+        } else if (principal < 0) {
+            uint256 amount = uint256(-principal);
+            if (treasury.principalReserve >= amount) {
+                treasury.principalReserve -= amount;
+                emit FundsDeducted("Principal Reserve", amount);
+            } else {
+                uint256 oldValue = treasury.principalReserve;
+                treasury.principalReserve = 0;
+                emit FundsDeducted("Principal Reserve", oldValue);
+            }
         }
         
-        // If no time has passed, no coupon is due
-        if (timeSinceLastClaim == 0) return 0;
+        // Handle coupon reserve
+        if (coupon > 0) {
+            treasury.couponReserve += uint256(coupon);
+            emit FundsAllocated("Coupon Reserve", uint256(coupon));
+        } else if (coupon < 0) {
+            uint256 amount = uint256(-coupon);
+            if (treasury.couponReserve >= amount) {
+                treasury.couponReserve -= amount;
+                emit FundsDeducted("Coupon Reserve", amount);
+            } else {
+                uint256 oldValue = treasury.couponReserve;
+                treasury.couponReserve = 0;
+                emit FundsDeducted("Coupon Reserve", oldValue);
+            }
+        }
         
+        // Handle project funds
+        if (project > 0) {
+            treasury.projectFunds += uint256(project);
+            emit FundsAllocated("Project Funds", uint256(project));
+        } else if (project < 0) {
+            uint256 amount = uint256(-project);
+            if (treasury.projectFunds >= amount) {
+                treasury.projectFunds -= amount;
+                emit FundsDeducted("Project Funds", amount);
+            } else {
+                uint256 oldValue = treasury.projectFunds;
+                treasury.projectFunds = 0;
+                emit FundsDeducted("Project Funds", oldValue);
+            }
+        }
         
-        // Calculate the effective coupon rate (basis points to decimal)
-        // 500 basis points (5%) would become 0.05 * PRECISION_FACTOR
-        uint256 effectiveRate = couponRate;
-        
-        uint256 annualInterestPerToken;
-        
-        // First calculate (faceValue * effectiveRate) 
-        uint256 interestNumerator = faceValue * effectiveRate;
-        
-        // Then divide by 10000 to get the actual interest amount
-        annualInterestPerToken = interestNumerator / 10000; 
-        
-        // Calculate daily interest rate (safeguard against division by zero)
-        uint256 secondsPerYear = 365 days;
-        
-        if (secondsPerYear == 0) return 0; // Should never happen
-        
-        // Calculate interest per second for a single token
-        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
-        
-        // Calculate interest per second for all tokens held
-        uint256 totalInterestPerSecond = interestPerSecondPerToken * bondBalance;
-        
-        // Calculate total interest accrued over the time period
-        uint256 accruedInterest = totalInterestPerSecond * timeSinceLastClaim;
-        
-        return accruedInterest;
+        // Handle emergency reserve
+        if (emergency > 0) {
+            treasury.emergencyReserve += uint256(emergency);
+            emit FundsAllocated("Emergency Reserve", uint256(emergency));
+        } else if (emergency < 0) {
+            uint256 amount = uint256(-emergency);
+            if (treasury.emergencyReserve >= amount) {
+                treasury.emergencyReserve -= amount;
+                emit FundsDeducted("Emergency Reserve", amount);
+            } else {
+                uint256 oldValue = treasury.emergencyReserve;
+                treasury.emergencyReserve = 0;
+                emit FundsDeducted("Emergency Reserve", oldValue);
+            }
+        }
+    }
+    
     }
     
     /// @notice Claim accumulated coupon payments
