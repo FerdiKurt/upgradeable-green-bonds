@@ -356,7 +356,9 @@ contract UpgradeableGreenBonds is
     /// @param certification String describing the certification (e.g., "LEED Gold")
     /// @dev Only callable by issuer
     function addGreenCertification(string memory certification) external onlyRole(ISSUER_ROLE) whenNotPaused {
+        uint256 index = greenCertifications.length;
         greenCertifications.push(certification);
+        emit GreenCertificationAdded(certification, index);
     }
     
     
