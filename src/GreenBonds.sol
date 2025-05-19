@@ -573,31 +573,18 @@ contract UpgradeableGreenBonds is
         return (couponAllocation, projectAllocation, emergencyAllocation);
     }
     
-        } else {
-            timeSinceLastClaim = block.timestamp - lastClaim;
-        }
-        
-        uint256 proRatedCoupon = 0;
-        if (timeSinceLastClaim > 0) {
-            // Calculate the effective coupon rate
-            uint256 effectiveRate = couponRate;
-            
-            // Calculate annual interest for the bond amount
-            uint256 interestNumerator = bondAmount * faceValue * effectiveRate;
-            uint256 annualInterest = interestNumerator / 10000;
-            
-            // Calculate interest per second
-            uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1; 
-            
-            uint256 interestPerSecond = annualInterest / secondsPerYear;
-            
-            // Calculate total interest accrued over the time period
-            proRatedCoupon = interestPerSecond * timeSinceLastClaim;
-        }
-        
-        // Burn bond tokens
-        _burn(msg.sender, bondAmount);
+    /// @notice Calculate claimable coupon for standard bonds
+    /// @param investor Address of the investor
+    /// @return uint256 Claimable coupon amount
+    function calculateClaimableCoupon(address investor) public view returns (uint256) {
+        return calculateTimeBasedInterest(
+            lastCouponClaimDate[investor],
+            couponRate,
+            faceValue,
+            balanceOf(investor)
+        );
+    }
+    
         
         // Update accounting
         if (treasury.principalReserve >= redemptionValue) {
