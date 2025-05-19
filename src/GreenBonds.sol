@@ -314,6 +314,23 @@ contract UpgradeableGreenBonds is
         emit OperationScheduled(operationId, block.timestamp + TIMELOCK_PERIOD);
     }
     
+    /// @notice Check if a timelock operation can be executed
+    /// @param operationId Unique identifier for the operation
+    /// @return bool True if operation can be executed, false if scheduling required
+    /// @dev Returns false if not scheduled, schedules the operation, and reverts if not expired
+    function checkAndScheduleOperation(bytes32 operationId) internal returns (bool) {
+        if (operationTimestamps[operationId] == 0) {
+            scheduleOperation(operationId);
+            return false;
+        }
+        
+        if (block.timestamp < operationTimestamps[operationId]) {
+            revert TimelockNotExpired();
+        }
+        
+        return true;
+    }
+    
     /// @notice Add a verifier who can validate impact reports
     /// @param verifier Address to be granted verifier role
     /// @dev Only callable by admin
