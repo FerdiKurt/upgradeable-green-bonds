@@ -79,6 +79,7 @@ contract UpgradeableGreenBonds is
     uint256 public couponPeriod; // in seconds
     uint256 public maturityDate;
     uint256 public issuanceDate;
+    bool private maturityEmitted; // Flag to track if maturity event has been emitted
     
     // Payment token (e.g., USDC, DAI)
     IERC20 public paymentToken;
@@ -253,6 +254,7 @@ contract UpgradeableGreenBonds is
         couponPeriod = _couponPeriod;
         issuanceDate = block.timestamp;
         maturityDate = block.timestamp + _maturityPeriod;
+        maturityEmitted = false;
         paymentToken = IERC20(_paymentTokenAddress);
         projectDescription = _projectDescription;
         impactMetrics = _impactMetrics;
@@ -327,59 +329,15 @@ contract UpgradeableGreenBonds is
         greenCertifications.push(certification);
     }
     
-    /// @notice Purchase bonds with payment tokens
-    /// @param bondAmount The number of bonds to purchase
-    /// @dev Transfers payment tokens from buyer to contract and mints ERC20 tokens
-    function purchaseBonds(uint256 bondAmount) external nonReentrant whenNotPaused {
-        if (block.timestamp >= maturityDate) revert BondMatured();
-        if (bondAmount == 0) revert InvalidBondAmount();
-        if (bondAmount > availableSupply) revert InsufficientBondsAvailable();
-        
-        uint256 cost = bondAmount * faceValue;
-        
-        // Transfer payment tokens from buyer to contract
-        paymentToken.safeTransferFrom(msg.sender, address(this), cost);
-        
-        // Mint ERC20 tokens representing bond ownership
-        _mint(msg.sender, bondAmount);
-        
-        // Allocate funds to different reserves
-        uint256 timeToMaturity = 0;
-        if (maturityDate > block.timestamp) {
-            timeToMaturity = maturityDate - block.timestamp;
+    
+    /// @notice Check and emit maturity event if bond has matured
+    function checkAndEmitMaturity() internal {
+        if (block.timestamp >= maturityDate && !maturityEmitted) {
+            maturityEmitted = true;
+            emit BondMaturityReached(maturityDate);
         }
-        
-        uint256 couponAllocation = 0;
-        if (timeToMaturity > 0) {
-            // Calculate annual coupon
-            uint256 annualCouponPercentage = couponRate;
-            uint256 annualCouponAmount = cost * annualCouponPercentage / 10000;
-            
-            // Calculate time-proportional coupon allocation
-            uint256 secondsPerYear = 365 days;
-            couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
-        }
-        
-        // Update treasury balances
-        treasury.principalReserve += cost;
-        treasury.couponReserve += couponAllocation;
-        
-        uint256 remainingAmount = cost - couponAllocation;
-        uint256 projectAllocation = (remainingAmount * 90) / 100;  // 90% for project
-        uint256 emergencyAllocation = remainingAmount - projectAllocation; // Remainder for emergency
-        
-        treasury.projectFunds += projectAllocation;
-        treasury.emergencyReserve += emergencyAllocation;
-        
-        // Update bond state
-        availableSupply = availableSupply - bondAmount;
-        lastCouponClaimDate[msg.sender] = block.timestamp;
-        
-        emit BondPurchased(msg.sender, bondAmount, cost);
-        emit FundsAllocated("Principal Reserve", cost);
-        emit FundsAllocated("Coupon Reserve", couponAllocation);
-        emit FundsAllocated("Project Funds", projectAllocation);
-        emit FundsAllocated("Emergency Reserve", emergencyAllocation);
+    }
+    
     }
     
     /// @notice Calculate claimable coupon amount for an investor
