@@ -452,17 +452,28 @@ contract UpgradeableGreenBonds is
         }
     }
     
+    /// @notice Safe transfer of tokens
+    /// @param recipient Address to receive tokens
+    /// @param amount Amount to transfer
+    /// @return uint256 Amount actually transferred
+    /// @dev Safely transfers tokens respecting available balance
+    function safeTransferTokens(address recipient, uint256 amount) internal returns (uint256) {
+        uint256 availableBalance = paymentToken.balanceOf(address(this));
+        
+        // Ensure we don't try to transfer more than available
+        uint256 transferAmount = amount;
+        if (transferAmount > availableBalance) {
+            transferAmount = availableBalance;
+        }
+        
+        // Transfer tokens
+        if (transferAmount > 0) {
+            paymentToken.safeTransfer(recipient, transferAmount);
+        }
+        
+        return transferAmount;
     }
     
-    /// @notice Claim accumulated coupon payments
-    /// @dev Calculates claimable amount and transfers payment tokens to the investor
-    function claimCoupon() external nonReentrant whenNotPaused {
-        // Instead of using calculateClaimableCoupon, calculate directly for safety
-        uint256 bondBalance = balanceOf(msg.sender);
-        if (bondBalance == 0) revert NoCouponAvailable();
-        
-        uint256 lastClaim = lastCouponClaimDate[msg.sender];
-        if (lastClaim == 0) revert NoCouponAvailable();
         
         // Calculate time since last claim
         uint256 timeSinceLastClaim;
