@@ -47,6 +47,14 @@ contract UpgradeableGreenBonds is
     error FailedExecution();
     error ChallengePeriodEnded();
     error AlreadyVoted();
+    error NoVotingPower();
+    error ArrayLengthMismatch();
+    error ProposalRejected();
+    error InvalidValue();
+    error EmptyString();
+    error RateExceedsMaximum();
+    error RecoveryNotAuthorized();
+    error InvalidRecoveryAmount();
 
     /// @notice Role definitions
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
