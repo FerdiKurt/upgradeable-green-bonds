@@ -510,7 +510,7 @@ contract UpgradeableGreenBonds is
         
         // Calculate interest per second per token
         uint256 secondsPerYear = 365 days;
-        if (secondsPerYear == 0) secondsPerYear = 1; // Safety check
+        if (secondsPerYear == 0) secondsPerYear = 1;
         
         uint256 interestPerSecondPerToken;
         uint256 totalInterestPerSecond;
