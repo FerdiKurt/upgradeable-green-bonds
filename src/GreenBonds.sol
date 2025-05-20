@@ -115,6 +115,7 @@ contract UpgradeableGreenBonds is
         mapping(address => bool) hasVerified;
         mapping(string => uint256) quantitativeMetrics; // Name -> value mapping
         string[] metricNames;
+        address[] verifiers; 
     }
     
     // Impact reports storage
