@@ -693,49 +693,80 @@ contract UpgradeableGreenBonds is
         return transferAmount;
     }
     
+    /// @notice Process bond redemption (generic for both standard and tranche)
+    /// @param bondAmount Amount of bonds to redeem
+    /// @param tokenValue Face value of each bond
+    /// @param couponAmount Accrued coupon amount
     /// @param investor Address of the investor
-    /// @return uint256 Claimable coupon amount
-    function calculateTrancheCoupon(uint256 trancheId, address investor) public view returns (uint256) {
-        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
-        Tranche storage tranche = tranches[trancheId];
+    /// @param isTranche Whether this is a tranche redemption
+    /// @param trancheId ID of the tranche (if applicable)
+    /// @param isEarly Whether this is an early redemption
+    /// @param penalty Penalty amount for early redemption (if applicable)
+    /// @return uint256 Total amount paid
+    function processBondRedemption(
+        uint256 bondAmount,
+        uint256 tokenValue,
+        uint256 couponAmount,
+        address investor,
+        bool isTranche,
+        uint256 trancheId,
+        bool isEarly,
+        uint256 penalty
+    ) internal returns (uint256) {
+        // Check for maturity and emit event if needed
+        checkAndEmitMaturity();
         
-        // Early returns for edge cases
-        uint256 bondBalance = tranche.holdings[investor];
-        if (bondBalance == 0) return 0;
+        // Calculate redemption value
+        uint256 redemptionValue = bondAmount * tokenValue;
+        uint256 payoutAmount = redemptionValue;
         
-        uint256 lastClaim = tranche.lastCouponClaimDate[investor];
-        if (lastClaim == 0) return 0;
-        
-        // Time since last claim
-        uint256 timeSinceLastClaim;
-        if (block.timestamp < lastClaim) {
-            // This should never happen, but just in case of timestamp manipulation
-            return 0;
-        } else {
-            timeSinceLastClaim = block.timestamp - lastClaim;
+        if (isEarly) {
+            payoutAmount = redemptionValue - penalty;
         }
         
-        // If no time has passed, no coupon is due
-        if (timeSinceLastClaim == 0) return 0;
+        // Update bond holdings
+        if (isTranche) {
+            Tranche storage tranche = tranches[trancheId];
+            tranche.holdings[investor] = 0;
+            tranche.lastCouponClaimDate[investor] = 0;
+        } else {
+            _burn(investor, bondAmount);
+            lastCouponClaimDate[investor] = 0;
+        }
         
-        // Calculate the effective coupon rate (basis points to decimal)
-        uint256 effectiveRate = tranche.couponRate;
+        // Update treasury accounting
+        int256 principalAdjustment = -int256(redemptionValue);
+        int256 couponAdjustment = couponAmount > 0 ? -int256(couponAmount) : int256(0);
+        int256 emergencyAdjustment = penalty > 0 ? int256(penalty) : int256(0);
         
-        // Calculate annual interest for a single token
-        uint256 interestNumerator = tranche.faceValue * effectiveRate;
-        uint256 annualInterestPerToken = interestNumerator / 10000;
+        updateTreasury(
+            principalAdjustment,
+            couponAdjustment,
+            0,                   // Project funds (no change)
+            emergencyAdjustment
+        );
         
-        // Calculate interest per second for a single token
-        uint256 secondsPerYear = 365 days;
-        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
+        // Calculate total payment
+        uint256 totalPayment = payoutAmount;
+        if (couponAmount > 0) {
+            totalPayment = totalPayment + couponAmount;
+        }
         
-        // Calculate interest per second for all tokens held
-        uint256 totalInterestPerSecond = interestPerSecondPerToken * bondBalance;
+        // Transfer funds
+        uint256 transferAmount = safeTransferTokens(investor, totalPayment);
         
-        // Calculate total interest accrued over the time period
-        uint256 accruedInterest = totalInterestPerSecond * timeSinceLastClaim;
+        // Emit appropriate event
+        if (isTranche) {
+            emit TrancheBondRedeemed(investor, trancheId, bondAmount, transferAmount);
+        } else if (isEarly) {
+            emit BondRedeemedEarly(investor, bondAmount, transferAmount, penalty);
+        } else {
+            emit BondRedeemed(investor, bondAmount, transferAmount);
+        }
         
-        return accruedInterest;
+        return transferAmount;
+    }
+    
     }
     
     /// @notice Claim coupon for a specific tranche
