@@ -601,88 +601,58 @@ contract UpgradeableGreenBonds is
         );
     }
     
-    }
-    
-    /// @notice Add a new tranche of bonds with different risk/reward profile
-    /// @param _name Name of the tranche
-    /// @param _faceValue Face value of each bond in this tranche
-    /// @param _couponRate Coupon rate for this tranche in basis points
-    /// @param _seniority Seniority level (lower is more senior)
-    /// @param _totalSupply Total supply of this tranche
-    /// @dev Only callable by issuer
-    function addTranche(
-        string memory _name,
-        uint256 _faceValue,
-        uint256 _couponRate,
-        uint256 _seniority,
-        uint256 _totalSupply
-    ) external onlyRole(ISSUER_ROLE) whenNotPaused {
-        uint256 trancheId = trancheCount++;
-        Tranche storage newTranche = tranches[trancheId];
-        
-        newTranche.name = _name;
-        newTranche.faceValue = _faceValue;
-        newTranche.couponRate = _couponRate;
-        newTranche.seniority = _seniority;
-        newTranche.totalSupply = _totalSupply;
-        newTranche.availableSupply = _totalSupply;
-        
-        emit TrancheAdded(trancheId, _name, _couponRate, _seniority);
-    }
-    
-    /// @notice Purchase bonds from a specific tranche
-    /// @param trancheId ID of the tranche to purchase from
+    /// @notice Process a bond purchase (generic for both standard and tranche)
     /// @param bondAmount Amount of bonds to purchase
-    /// @dev Similar to regular bond purchase but for specific tranches
-    function purchaseTrancheBonds(uint256 trancheId, uint256 bondAmount) external nonReentrant whenNotPaused {
-        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
-        Tranche storage tranche = tranches[trancheId];
+    /// @param cost Total cost of bonds
+    /// @param isTranche Whether this is a tranche purchase
+    /// @param trancheId ID of the tranche (if applicable)
+    /// @dev Internal function to handle bond purchase logic
+    function processBondPurchase(
+        uint256 bondAmount,
+        uint256 cost,
+        bool isTranche,
+        uint256 trancheId
+    ) internal {
+        // Check for maturity and emit event if needed
+        checkAndEmitMaturity();
         
-        if (block.timestamp >= maturityDate) revert BondMatured();
-        if (bondAmount == 0) revert InvalidBondAmount();
-        if (bondAmount > tranche.availableSupply) revert InsufficientBondsAvailable();
-        
-        uint256 cost = bondAmount * tranche.faceValue;
+        uint256 currentTime = block.timestamp;
         
         // Transfer payment tokens from buyer to contract
         paymentToken.safeTransferFrom(msg.sender, address(this), cost);
         
-        // Update tranche holdings
-        tranche.holdings[msg.sender] += bondAmount;
-        tranche.availableSupply -= bondAmount;
-        tranche.lastCouponClaimDate[msg.sender] = block.timestamp;
-        
-        // Allocate funds to different reserves 
-        uint256 timeToMaturity = 0;
-        if (maturityDate > block.timestamp) {
-            timeToMaturity = maturityDate - block.timestamp;
-        }
-        
-        uint256 couponAllocation = 0;
-        if (timeToMaturity > 0) {
-            // Calculate annual coupon
-            uint256 annualCouponPercentage = tranche.couponRate;
-            uint256 annualCouponAmount = cost * annualCouponPercentage / 10000;
-            
-            // Calculate time-proportional coupon allocation
-            uint256 secondsPerYear = 365 days;
-            couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
-        }
+        // Calculate fund allocation
+        (uint256 couponAllocation, uint256 projectAllocation, uint256 emergencyAllocation) = 
+            calculateFundAllocation(cost);
         
         // Update treasury balances
-        treasury.principalReserve += cost;
-        treasury.couponReserve += couponAllocation;
+        updateTreasury(
+            int256(cost),                // Principal reserve
+            int256(couponAllocation),    // Coupon reserve
+            int256(projectAllocation),   // Project funds
+            int256(emergencyAllocation)  // Emergency reserve
+        );
         
-        uint256 remainingAmount = cost - couponAllocation;
-        uint256 projectAllocation = (remainingAmount * 90) / 100;  // 90% for project
-        uint256 emergencyAllocation = remainingAmount - projectAllocation; // Remainder for emergency
-        
-        treasury.projectFunds += projectAllocation;
-        treasury.emergencyReserve += emergencyAllocation;
-        
-        emit TrancheBondPurchased(msg.sender, trancheId, bondAmount, cost);
-        emit FundsAllocated("Principal Reserve", cost);
-        emit FundsAllocated("Coupon Reserve", couponAllocation);
+        // Update bond state
+        if (isTranche) {
+            Tranche storage tranche = tranches[trancheId];
+            tranche.holdings[msg.sender] += bondAmount;
+
+            tranche.availableSupply = tranche.availableSupply - bondAmount;
+            
+            tranche.lastCouponClaimDate[msg.sender] = currentTime;
+            
+            emit TrancheBondPurchased(msg.sender, trancheId, bondAmount, cost);
+        } else {
+            _mint(msg.sender, bondAmount);
+            availableSupply -= bondAmount;
+            
+            lastCouponClaimDate[msg.sender] = currentTime;
+            
+            emit BondPurchased(msg.sender, bondAmount, cost);
+        }
+    }
+    
     }
     
     /// @notice Calculate claimable coupon for a tranche bondholder
