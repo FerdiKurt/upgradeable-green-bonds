@@ -767,11 +767,19 @@ contract UpgradeableGreenBonds is
         return transferAmount;
     }
     
+    /// @notice Purchase bonds with payment tokens
+    /// @param bondAmount The number of bonds to purchase
+    /// @dev Transfers payment tokens from buyer to contract and mints ERC20 tokens
+    function purchaseBonds(uint256 bondAmount) external nonReentrant whenNotPaused {
+        if (isBondMatured()) revert BondMatured();
+        if (bondAmount == 0) revert InvalidBondAmount();
+        if (bondAmount > availableSupply) revert InsufficientBondsAvailable();
+        
+        uint256 cost = bondAmount * faceValue;
+        
+        processBondPurchase(bondAmount, cost, false, 0);
     }
     
-    /// @notice Claim coupon for a specific tranche
-    /// @param trancheId ID of the tranche
-    function claimTrancheCoupon(uint256 trancheId) external nonReentrant whenNotPaused {
         if (trancheId >= trancheCount) revert TrancheDoesNotExist();
         Tranche storage tranche = tranches[trancheId];
         
