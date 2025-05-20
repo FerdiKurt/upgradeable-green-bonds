@@ -795,22 +795,19 @@ contract UpgradeableGreenBonds is
         processBondPurchase(bondAmount, cost, true, trancheId);
     }
     
+    /// @notice Claim accumulated coupon payments
+    /// @dev Calculates claimable amount and transfers payment tokens to the investor
+    function claimCoupon() external nonReentrant whenNotPaused {
+        if (balanceOf(msg.sender) == 0) revert NoCouponAvailable();
         
-        // Calculate annual interest per token (basis points to decimal)
-        uint256 annualInterestPerToken = tranche.faceValue * tranche.couponRate / 10000;
+        if (lastCouponClaimDate[msg.sender] == 0) revert NoCouponAvailable();
         
-        // Calculate interest per second per token
-        uint256 secondsPerYear = 365 days;
-        if (secondsPerYear == 0) secondsPerYear = 1; 
+        uint256 claimableAmount = calculateClaimableCoupon(msg.sender);
+        if (claimableAmount == 0) revert NoCouponAvailable();
         
-        uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
-        
-        // Calculate interest per second for all tokens
-        uint256 interestPerSecondTotal = interestPerSecondPerToken * bondBalance;
-        
-        // Calculate total claimable coupon
-        uint256 claimableAmount = interestPerSecondTotal * timeSinceLastClaim;
-        
+        processCouponClaim(claimableAmount, msg.sender, false, 0);
+    }
+    
         if (claimableAmount == 0) revert NoCouponAvailable();
         
         // Update last claim date
