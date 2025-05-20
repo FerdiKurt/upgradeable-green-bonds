@@ -548,11 +548,10 @@ contract UpgradeableGreenBonds is
         couponAllocation = 0;
         if (timeToMaturity > 0) {
             // Calculate annual coupon
-            uint256 annualCouponPercentage = couponRate;
             uint256 annualCouponAmount;
             
             unchecked {
-                annualCouponAmount = cost * annualCouponPercentage / 10000;
+                annualCouponAmount = cost * couponRate / 10000;
             }
             
             // Calculate time-proportional coupon allocation
