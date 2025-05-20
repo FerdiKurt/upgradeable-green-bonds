@@ -778,25 +778,23 @@ contract UpgradeableGreenBonds is
         processBondPurchase(bondAmount, cost, false, 0);
     }
     
+    /// @notice Purchase bonds from a specific tranche
+    /// @param trancheId ID of the tranche to purchase from
+    /// @param bondAmount Amount of bonds to purchase
+    /// @dev Similar to regular bond purchase but for specific tranches
+    function purchaseTrancheBonds(uint256 trancheId, uint256 bondAmount) external nonReentrant whenNotPaused {
         if (trancheId >= trancheCount) revert TrancheDoesNotExist();
         Tranche storage tranche = tranches[trancheId];
         
-        uint256 bondBalance = tranche.holdings[msg.sender];
-        if (bondBalance == 0) revert NoCouponAvailable();
+        if (isBondMatured()) revert BondMatured();
+        if (bondAmount == 0) revert InvalidBondAmount();
+        if (bondAmount > tranche.availableSupply) revert InsufficientBondsAvailable();
         
-        uint256 lastClaim = tranche.lastCouponClaimDate[msg.sender];
-        if (lastClaim == 0) revert NoCouponAvailable();
+        uint256 cost = bondAmount * tranche.faceValue;
         
-        // Calculate time since last claim
-        uint256 timeSinceLastClaim;
-        if (block.timestamp <= lastClaim) {
-            revert NoCouponAvailable();
-        } else {
-            timeSinceLastClaim = block.timestamp - lastClaim;
-        }
-        
-        // If no time has passed, no coupon is due
-        if (timeSinceLastClaim == 0) revert NoCouponAvailable();
+        processBondPurchase(bondAmount, cost, true, trancheId);
+    }
+    
         
         // Calculate annual interest per token (basis points to decimal)
         uint256 annualInterestPerToken = tranche.faceValue * tranche.couponRate / 10000;
