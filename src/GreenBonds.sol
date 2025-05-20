@@ -468,10 +468,8 @@ contract UpgradeableGreenBonds is
         }
         
         // Transfer tokens
-        if (transferAmount > 0) {
-            paymentToken.safeTransfer(recipient, transferAmount);
-        }
-        
+        paymentToken.safeTransfer(recipient, transferAmount);
+
         return transferAmount;
     }
     
