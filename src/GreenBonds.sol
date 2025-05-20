@@ -653,10 +653,46 @@ contract UpgradeableGreenBonds is
         }
     }
     
+    /// @notice Process a coupon claim (generic for both standard and tranche)
+    /// @param claimableAmount Amount of coupon to claim
+    /// @param investor Address of the investor claiming coupon
+    /// @param isTranche Whether this is a tranche claim
+    /// @param trancheId ID of the tranche (if applicable)
+    /// @return uint256 Amount actually paid
+    function processCouponClaim(
+        uint256 claimableAmount,
+        address investor,
+        bool isTranche,
+        uint256 trancheId
+    ) internal returns (uint256) {
+        // Check for maturity and emit event if needed
+        checkAndEmitMaturity();
+        
+        uint256 currentTime = block.timestamp;
+        
+        // Update treasury
+        updateTreasury(
+            0,                       // Principal reserve (no change)
+            -int256(claimableAmount), // Deduct from coupon reserve
+            0,                       // Project funds (no change)
+            0                        // Emergency reserve (no change)
+        );
+        
+        // Transfer coupon payment
+        uint256 transferAmount = safeTransferTokens(investor, claimableAmount);
+        
+        // Update last claim date
+        if (isTranche) {
+            tranches[trancheId].lastCouponClaimDate[investor] = currentTime;
+            emit TrancheCouponClaimed(investor, trancheId, transferAmount);
+        } else {
+            lastCouponClaimDate[investor] = currentTime;
+            emit CouponClaimed(investor, transferAmount);
+        }
+        
+        return transferAmount;
     }
     
-    /// @notice Calculate claimable coupon for a tranche bondholder
-    /// @param trancheId ID of the tranche
     /// @param investor Address of the investor
     /// @return uint256 Claimable coupon amount
     function calculateTrancheCoupon(uint256 trancheId, address investor) public view returns (uint256) {
