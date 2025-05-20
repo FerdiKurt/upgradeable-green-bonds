@@ -585,40 +585,22 @@ contract UpgradeableGreenBonds is
         );
     }
     
+    /// @notice Calculate claimable coupon for tranche bonds
+    /// @param trancheId ID of the tranche
+    /// @param investor Address of the investor
+    /// @return uint256 Claimable coupon amount
+    function calculateTrancheCoupon(uint256 trancheId, address investor) public view returns (uint256) {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        Tranche storage tranche = tranches[trancheId];
         
-        // Update accounting
-        if (treasury.principalReserve >= redemptionValue) {
-            treasury.principalReserve -= redemptionValue;
-        } else {
-            treasury.principalReserve = 0;
-        }
-        treasury.emergencyReserve += penalty; // Penalty goes to emergency reserve
-        
-        if (proRatedCoupon > 0) {
-            if (treasury.couponReserve >= proRatedCoupon) {
-                treasury.couponReserve -= proRatedCoupon;
-            } else {
-                treasury.couponReserve = 0;
-            }
-        }
-        
-        // Check available balance before transfer
-        uint256 availableBalance = paymentToken.balanceOf(address(this));
-        
-        // Calculate total payout
-        uint256 totalPayout = payoutAmount + proRatedCoupon;
-        
-        // Ensure we don't try to transfer more than available
-        if (totalPayout > availableBalance) {
-            totalPayout = availableBalance;
-        }
-        
-        // Transfer funds
-        if (totalPayout > 0) {
-            paymentToken.safeTransfer(msg.sender, totalPayout);
-        }
-        
-        emit BondRedeemedEarly(msg.sender, bondAmount, totalPayout, penalty);
+        return calculateTimeBasedInterest(
+            tranche.lastCouponClaimDate[investor],
+            tranche.couponRate,
+            tranche.faceValue,
+            tranche.holdings[investor]
+        );
+    }
+    
     }
     
     /// @notice Add a new tranche of bonds with different risk/reward profile
