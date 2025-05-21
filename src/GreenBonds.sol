@@ -1305,11 +1305,20 @@ contract UpgradeableGreenBonds is
         nonReentrant 
         whenNotPaused 
     {
-        require(amount <= treasury.projectFunds, "Insufficient project funds");
+        if (recipient == address(0)) revert InvalidValue();
+        if (amount == 0) revert InvalidValue();
+        if (bytes(purpose).length == 0) revert EmptyString();
+        if (amount > treasury.projectFunds) revert InsufficientFunds();
         
-        treasury.projectFunds -= amount;
+        updateTreasury(
+            0,              // Principal reserve (no change)
+            0,              // Coupon reserve (no change)
+            -int256(amount), // Deduct from project funds
+            0               // Emergency reserve (no change)
+        );
         
-        paymentToken.safeTransfer(recipient, amount);
+        // Transfer funds after state updates
+        safeTransferTokens(recipient, amount);
         
         emit FundWithdrawal(recipient, amount, purpose, block.timestamp);
     }
