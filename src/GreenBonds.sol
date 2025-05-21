@@ -853,72 +853,26 @@ contract UpgradeableGreenBonds is
         if (trancheId >= trancheCount) revert TrancheDoesNotExist();
         Tranche storage tranche = tranches[trancheId];
         
-        if (block.timestamp < maturityDate) revert BondNotMatured();
+        if (!isBondMatured()) revert BondNotMatured();
         
         uint256 bondAmount = tranche.holdings[msg.sender];
         if (bondAmount == 0) revert NoBondsToRedeem();
         
-        // Calculate redemption value 
-        uint256 redemptionValue = bondAmount * tranche.faceValue;
+        // Calculate claimable coupon
+        uint256 claimableAmount = calculateTrancheCoupon(trancheId, msg.sender);
         
-        // Calculate claimable coupon 
-        uint256 claimableAmount = 0;
-        uint256 lastClaim = tranche.lastCouponClaimDate[msg.sender];
-        
-        if (lastClaim > 0 && block.timestamp > lastClaim) {
-            uint256 timeSinceLastClaim = block.timestamp - lastClaim;
-            
-            // Calculate annual interest per token (basis points to decimal)
-            uint256 annualInterestPerToken = tranche.faceValue * tranche.couponRate / 10000;
-            
-            // Calculate interest per second per token
-            uint256 secondsPerYear = 365 days;
-            if (secondsPerYear == 0) secondsPerYear = 1;
-            
-            uint256 interestPerSecondPerToken = annualInterestPerToken / secondsPerYear;
-            uint256 interestPerSecond = interestPerSecondPerToken * bondAmount;
-            claimableAmount = interestPerSecond * timeSinceLastClaim;
-        }
-        
-        // Update holdings
-        tranche.holdings[msg.sender] = 0;
-        tranche.lastCouponClaimDate[msg.sender] = 0;
-        
-        // Update treasury accounting 
-        if (treasury.principalReserve >= redemptionValue) {
-            treasury.principalReserve -= redemptionValue;
-        } else {
-            treasury.principalReserve = 0;
-        }
-        
-        if (claimableAmount > 0) {
-            if (treasury.couponReserve >= claimableAmount) {
-                treasury.couponReserve -= claimableAmount;
-            } else {
-                treasury.couponReserve = 0;
-            }
-        }
-        
-        // Check available balance before transfer
-        uint256 availableBalance = paymentToken.balanceOf(address(this));
-        
-        // Calculate total payment based on available balance
-        uint256 totalPayment = redemptionValue;
-        if (claimableAmount > 0) {
-            totalPayment = totalPayment + claimableAmount;
-        }
-        
-        // Ensure we don't try to transfer more than available
-        if (totalPayment > availableBalance) {
-            totalPayment = availableBalance;
-        }
-        
-        // Transfer redemption amount + final coupon (capped by available balance)
-        if (totalPayment > 0) {
-            paymentToken.safeTransfer(msg.sender, totalPayment);
-        }
-        
-        emit TrancheBondRedeemed(msg.sender, trancheId, bondAmount, totalPayment);
+        processBondRedemption(
+            bondAmount,
+            tranche.faceValue,
+            claimableAmount,
+            msg.sender,
+            true,       // Is a tranche
+            trancheId,  // Tranche ID
+            false,      // Not early redemption
+            0           // No penalty
+        );
+    }
+    
     }
     
     /// @notice Add environmental impact report with enhanced metrics
