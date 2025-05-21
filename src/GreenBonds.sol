@@ -824,6 +824,27 @@ contract UpgradeableGreenBonds is
         processCouponClaim(claimableAmount, msg.sender, true, trancheId);
     }
     
+    /// @notice Redeem bonds at maturity
+    /// @dev Transfers principal and any outstanding coupon payments to the investor
+    function redeemBonds() external nonReentrant whenNotPaused {
+        if (!isBondMatured()) revert BondNotMatured();
+        
+        uint256 bondAmount = balanceOf(msg.sender);
+        if (bondAmount == 0) revert NoBondsToRedeem();
+        
+        // Calculate claimable coupon
+        uint256 claimableAmount = calculateClaimableCoupon(msg.sender);
+        
+        processBondRedemption(
+            bondAmount,
+            faceValue,
+            claimableAmount,
+            msg.sender,
+            false,  // Not a tranche
+            0,      // Tranche ID (not used)
+            false,  // Not early redemption
+            0       // No penalty
+        );
     }
     
     /// @notice Redeem bonds from a specific tranche
