@@ -1526,17 +1526,22 @@ contract UpgradeableGreenBonds is
         onlyRole(DEFAULT_ADMIN_ROLE)
         whenNotPaused 
     {
+        if (newQuorum == 0) revert InvalidValue();
+        if (newVotingPeriod == 0) revert InvalidValue();
+        
         bytes32 operationId = keccak256(abi.encodePacked("updateGovernance", newQuorum, newVotingPeriod, block.timestamp));
         
-        if (operationTimestamps[operationId] == 0) {
-            scheduleOperation(operationId);
-            return;
+        if (checkAndScheduleOperation(operationId)) {
+            uint256 oldQuorum = quorum;
+            uint256 oldVotingPeriod = votingPeriod;
+            
+            // Update storage
+            quorum = newQuorum;
+            votingPeriod = newVotingPeriod;
+            
+            emit GovernanceParamsUpdated(oldQuorum, newQuorum, oldVotingPeriod, newVotingPeriod);
+            emit OperationExecuted(operationId);
         }
-        
-        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
-        
-        quorum = newQuorum;
-        votingPeriod = newVotingPeriod;
     }
     
     /// @notice Version number for this contract implementation
