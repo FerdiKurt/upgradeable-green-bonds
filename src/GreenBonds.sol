@@ -1330,23 +1330,26 @@ contract UpgradeableGreenBonds is
         external 
         onlyRole(ISSUER_ROLE) 
         nonReentrant 
-        whenNotPaused 
     {
+        if (amount == 0) revert InvalidValue();
+        
         bytes32 operationId = keccak256(abi.encodePacked("emergencyWithdraw", amount, block.timestamp));
         
-        if (operationTimestamps[operationId] == 0) {
-            scheduleOperation(operationId);
-            return;
+        if (checkAndScheduleOperation(operationId)) {
+            if (amount > treasury.emergencyReserve) revert InsufficientFunds();
+            
+            updateTreasury(
+                0,               // Principal reserve (no change)
+                0,               // Coupon reserve (no change)
+                0,               // Project funds (no change)
+                -int256(amount)  // Deduct from emergency reserve
+            );
+            
+            safeTransferTokens(msg.sender, amount);
+            
+            emit FundWithdrawal(msg.sender, amount, "Emergency Withdrawal", block.timestamp);
+            emit OperationExecuted(operationId);
         }
-        
-        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
-        if (amount > treasury.emergencyReserve) revert InsufficientFunds();
-        
-        treasury.emergencyReserve -= amount;
-        
-        paymentToken.safeTransfer(msg.sender, amount);
-        
-        emit FundWithdrawal(msg.sender, amount, "Emergency Withdrawal", block.timestamp);
     }
     
     /// @notice Get the treasury status
