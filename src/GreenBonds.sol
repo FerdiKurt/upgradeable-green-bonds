@@ -973,8 +973,12 @@ contract UpgradeableGreenBonds is
         uint256[] memory metricValues,
         uint256 challengePeriod,
         uint256 requiredVerifications
-    ) external onlyRole(ISSUER_ROLE) whenNotPaused {
-        require(metricNames.length == metricValues.length, "Arrays length mismatch");
+    ) external onlyRole(ISSUER_ROLE) whenNotPaused nonReentrant {
+        if (metricNames.length != metricValues.length) revert ArrayLengthMismatch();
+        if (bytes(reportURI).length == 0) revert EmptyString();
+        if (bytes(reportHash).length == 0) revert EmptyString();
+        if (challengePeriod == 0) revert InvalidValue();
+        if (requiredVerifications == 0) revert InvalidValue();
         
         uint256 reportId = impactReportCount++;
         EnhancedImpactReport storage newReport = impactReports[reportId];
@@ -989,6 +993,7 @@ contract UpgradeableGreenBonds is
         
         // Store quantitative metrics
         for (uint256 i = 0; i < metricNames.length; i++) {
+            if (bytes(metricNames[i]).length == 0) revert EmptyString();
             newReport.quantitativeMetrics[metricNames[i]] = metricValues[i];
             newReport.metricNames.push(metricNames[i]);
         }
