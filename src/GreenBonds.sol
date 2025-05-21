@@ -1206,11 +1206,20 @@ contract UpgradeableGreenBonds is
     /// @param enabled Whether early redemption is enabled
     /// @param penaltyBps Penalty in basis points for early redemption
     /// @dev Only callable by issuer
-    function setEarlyRedemptionParams(bool enabled, uint256 penaltyBps) external onlyRole(ISSUER_ROLE) whenNotPaused {
+    function setEarlyRedemptionParams(bool enabled, uint256 penaltyBps) 
+        external 
+        onlyRole(ISSUER_ROLE) 
+        whenNotPaused 
+        nonReentrant 
+    {
+        if (penaltyBps > 5000) revert InvalidValue(); // Maximum 50% penalty
+        
+        uint256 oldPenaltyBps = earlyRedemptionPenaltyBps;
         earlyRedemptionEnabled = enabled;
         earlyRedemptionPenaltyBps = penaltyBps;
         
         emit EarlyRedemptionStatusChanged(enabled);
+        emit EarlyRedemptionPenaltyUpdated(oldPenaltyBps, penaltyBps);
     }
     
     /// @notice Set the dashboard contract address
