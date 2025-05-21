@@ -1189,19 +1189,17 @@ contract UpgradeableGreenBonds is
         onlyRole(ISSUER_ROLE)
         whenNotPaused 
     {
+        if (newCouponPeriod == 0) revert InvalidValue();
+        
         bytes32 operationId = keccak256(abi.encodePacked("updateCouponPeriod", newCouponPeriod, block.timestamp));
         
-        if (operationTimestamps[operationId] == 0) {
-            scheduleOperation(operationId);
-            return;
+        if (checkAndScheduleOperation(operationId)) {
+            uint256 oldCouponPeriod = couponPeriod;
+            couponPeriod = newCouponPeriod;
+            
+            emit BondParametersUpdated(couponRate, couponRate, oldCouponPeriod, couponPeriod);
+            emit OperationExecuted(operationId);
         }
-        
-        if (block.timestamp < operationTimestamps[operationId]) revert TimelockNotExpired();
-        
-        uint256 oldCouponPeriod = couponPeriod;
-        couponPeriod = newCouponPeriod;
-        
-        emit BondParametersUpdated(couponRate, couponRate, oldCouponPeriod, couponPeriod);
     }
     
     /// @notice Set early redemption parameters
