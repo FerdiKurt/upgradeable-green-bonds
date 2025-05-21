@@ -1061,22 +1061,32 @@ contract UpgradeableGreenBonds is
     /// @dev Prevents finalization and requires review
     function challengeImpactReport(uint256 reportId, string memory reason) external onlyRole(VERIFIER_ROLE) whenNotPaused {
         if (reportId >= impactReportCount) revert ReportDoesNotExist();
-        
+       
         EnhancedImpactReport storage report = impactReports[reportId];
+        
+        address sender = msg.sender;
+        
         if (report.finalized) revert ReportAlreadyVerified();
         if (block.timestamp > report.challengePeriodEnd) revert ChallengePeriodEnded();
         
-        // Extend challenge period and reset verification count
-        report.challengePeriodEnd = block.timestamp + 7 days;
+        // Extend challenge period
+        uint256 newChallengeEnd = block.timestamp + 7 days;
+        report.challengePeriodEnd = newChallengeEnd;
+        
+        // Reset verification count
         report.verificationCount = 0;
         
         // Reset all verifications
-        for (uint256 i = 0; i < report.verificationCount; i++) {
-            address verifier = msg.sender; 
-            report.hasVerified[verifier] = false;
+        for (uint256 i = 0; i < report.verifiers.length; i++) {
+            report.hasVerified[report.verifiers[i]] = false;
         }
         
-        emit ImpactReportChallenged(reportId, msg.sender, reason);
+        // Clear the verifiers array
+        delete report.verifiers;
+        
+        emit ChallengePeriodExtended(reportId, newChallengeEnd);
+        emit VerificationRequirementsReset(reportId);
+        emit ImpactReportChallenged(reportId, sender, reason);
     }
     
     /// @notice Get an impact report's quantitative metrics
