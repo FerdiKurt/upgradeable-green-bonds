@@ -1210,7 +1210,6 @@ contract UpgradeableGreenBonds is
         external 
         onlyRole(ISSUER_ROLE) 
         whenNotPaused 
-        nonReentrant 
     {
         if (penaltyBps > 5000) revert InvalidValue(); // Maximum 50% penalty
         
