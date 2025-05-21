@@ -1009,27 +1009,47 @@ contract UpgradeableGreenBonds is
         if (reportId >= impactReportCount) revert ReportDoesNotExist();
         
         EnhancedImpactReport storage report = impactReports[reportId];
+
+        address sender = msg.sender;
+        
         if (report.finalized) revert ReportAlreadyVerified();
         if (block.timestamp > report.challengePeriodEnd) revert ChallengePeriodEnded();
-        if (report.hasVerified[msg.sender]) revert AlreadyVoted();
+        if (report.hasVerified[sender]) revert AlreadyVoted();
         
-        report.hasVerified[msg.sender] = true;
-        report.verificationCount++;
+        // Track this verifier
+        report.hasVerified[sender] = true;
+        report.verifiers.push(sender);
         
-        emit ImpactReportVerified(reportId, msg.sender);
+        uint256 verificationCount = report.verificationCount;
+        unchecked {
+            report.verificationCount = verificationCount + 1;
+        }
+        
+        emit ImpactReportVerified(reportId, sender);
         
         // Check if report has reached required verifications
-        if (report.verificationCount >= report.requiredVerifications) {
+        if (verificationCount + 1 >= report.requiredVerifications) {
             report.finalized = true;
             emit ImpactReportFinalized(reportId);
             
             // Update green premium based on impact metrics
-            if (greenPremiumRate < (maxCouponRate - baseCouponRate)) {
+            uint256 currentGreenPremium = greenPremiumRate;
+            uint256 currentBase = baseCouponRate;
+            
+            if (currentGreenPremium < (maxCouponRate - currentBase)) {
                 uint256 oldCouponRate = couponRate;
-                greenPremiumRate += 50; // Increase by 0.5%
-                couponRate = baseCouponRate + greenPremiumRate;
+                uint256 oldGreenPremiumRate = currentGreenPremium;
+                
+                uint256 newGreenPremium;
+                unchecked {
+                    newGreenPremium = currentGreenPremium + 50; // Increase by 0.5%
+                }
+                
+                greenPremiumRate = newGreenPremium;
+                couponRate = currentBase + newGreenPremium;
                 
                 emit CouponRateUpdated(couponRate);
+                emit GreenPremiumRateUpdated(oldGreenPremiumRate, newGreenPremium);
                 emit BondParametersUpdated(oldCouponRate, couponRate, couponPeriod, couponPeriod);
             }
         }
