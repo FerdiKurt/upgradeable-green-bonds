@@ -1145,7 +1145,7 @@ contract UpgradeableGreenBonds is
         if (proposal.hasVoted[msg.sender]) revert AlreadyVoted();
         
         uint256 votingPower = balanceOf(msg.sender);
-        require(votingPower > 0, "No voting power");
+        if (votingPower == 0) revert NoVotingPower();
         
         proposal.hasVoted[msg.sender] = true;
         
