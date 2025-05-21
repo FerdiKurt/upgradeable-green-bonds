@@ -1170,7 +1170,7 @@ contract UpgradeableGreenBonds is
         
         // Check if quorum is met and proposal passed
         if (proposal.forVotes + proposal.againstVotes < quorum) revert QuorumNotReached();
-        require(proposal.forVotes > proposal.againstVotes, "Proposal rejected");
+        if (proposal.forVotes <= proposal.againstVotes) revert ProposalRejected();
         
         proposal.executed = true;
         
