@@ -873,6 +873,31 @@ contract UpgradeableGreenBonds is
         );
     }
     
+    /// @notice Redeem bonds early with a penalty
+    /// @param bondAmount Amount of bonds to redeem early
+    /// @dev Calculates penalty and transfers reduced amount to investor
+    function redeemBondsEarly(uint256 bondAmount) external nonReentrant whenNotPaused {
+        if (!earlyRedemptionEnabled) revert EarlyRedemptionNotEnabled();
+        if (bondAmount == 0 || bondAmount > balanceOf(msg.sender)) revert InvalidBondAmount();
+        
+        uint256 redemptionValue = bondAmount * faceValue;
+        uint256 penalty = redemptionValue * earlyRedemptionPenaltyBps / 10000;
+        
+        // Calculate prorated coupon
+        uint256 proRatedCoupon = calculateClaimableCoupon(msg.sender);
+        
+        processBondRedemption(
+            bondAmount,
+            faceValue,
+            proRatedCoupon,
+            msg.sender,
+            false,      // Not a tranche
+            0,          // Tranche ID (not used)
+            true,       // Is early redemption
+            penalty     // Penalty amount
+        );
+    }
+    
     }
     
     /// @notice Add environmental impact report with enhanced metrics
