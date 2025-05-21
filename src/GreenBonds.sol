@@ -898,6 +898,31 @@ contract UpgradeableGreenBonds is
         );
     }
     
+    /// @notice Transfer bonds within a tranche to another address
+    /// @param trancheId ID of the tranche
+    /// @param to Recipient address
+    /// @param amount Amount of bonds to transfer
+    function transferTrancheBonds(uint256 trancheId, address to, uint256 amount) external nonReentrant whenNotPaused {
+        if (trancheId >= trancheCount) revert TrancheDoesNotExist();
+        if (to == address(0)) revert InvalidValue();
+        if (amount == 0) revert InvalidValue();
+        
+        Tranche storage tranche = tranches[trancheId];
+        
+        if (amount > tranche.holdings[msg.sender]) revert InsufficientBonds();
+        
+        // Update state 
+        tranche.holdings[msg.sender] -= amount;
+        tranche.holdings[to] += amount;
+        
+        // Update coupon claim date for receiver
+        if (tranche.lastCouponClaimDate[to] == 0) {
+            tranche.lastCouponClaimDate[to] = block.timestamp;
+        }
+        
+        emit TrancheTransfer(trancheId, msg.sender, to, amount);
+    }
+    
     }
     
     /// @notice Add environmental impact report with enhanced metrics
