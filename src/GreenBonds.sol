@@ -1222,12 +1222,27 @@ contract UpgradeableGreenBonds is
         emit EarlyRedemptionPenaltyUpdated(oldPenaltyBps, penaltyBps);
     }
     
-    /// @notice Set the dashboard contract address
-    /// @param _dashboardContract Address of dashboard contract
+    /// @notice Emergency recovery function that can be called even when paused
+    /// @param recoveryAddress Address to receive tokens
+    /// @param amount Amount to recover
     /// @dev Only callable by admin
-    function setDashboardContract(address _dashboardContract) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        dashboardContract = _dashboardContract;
-        emit DashboardContractUpdated(_dashboardContract);
+    function emergencyRecovery(address recoveryAddress, uint256 amount) 
+        external 
+        nonReentrant 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+    {
+        if (recoveryAddress == address(0)) revert InvalidValue();
+        if (amount == 0) revert InvalidRecoveryAmount();
+        
+        bytes32 operationId = keccak256(abi.encodePacked("emergencyRecovery", recoveryAddress, amount, block.timestamp));
+        
+        if (checkAndScheduleOperation(operationId)) {
+            uint256 transferAmount = safeTransferTokens(recoveryAddress, amount);
+            emit EmergencyRecovery(recoveryAddress, transferAmount);
+            emit OperationExecuted(operationId);
+        }
+    }
+    
     }
     
     /// @notice Allocate funds to a project component
