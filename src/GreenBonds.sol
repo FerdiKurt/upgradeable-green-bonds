@@ -1282,9 +1282,15 @@ contract UpgradeableGreenBonds is
         onlyRole(TREASURY_ROLE) 
         whenNotPaused 
     {
-        require(amount <= treasury.projectFunds, "Insufficient project funds");
+        if (amount > treasury.projectFunds) revert InsufficientFunds();
         
-        treasury.projectFunds -= amount;
+        updateTreasury(
+            0,              // Principal reserve (no change)
+            0,              // Coupon reserve (no change)
+            -int256(amount), // Deduct from project funds
+            0               // Emergency reserve (no change)
+        );
+        
         emit FundsAllocated(projectComponent, amount);
     }
     
