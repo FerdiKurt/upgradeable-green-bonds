@@ -1379,6 +1379,17 @@ contract UpgradeableGreenBonds is
     function getImpactReportCount() external view returns (uint256) {
         return impactReportCount;
     }
+
+    /// @notice Get all addresses that have verified a specific impact report
+    /// @param reportId ID of the report to query
+    /// @return address[] Array of all verifier addresses that have participated in verification
+    /// @dev This function returns the current list of verifiers who have verified the report
+    /// @dev The list is reset when a report is successfully challenged
+    /// @dev Throws ReportDoesNotExist if the report ID is invalid
+    function getReportVerifiers(uint256 reportId) external view returns (address[] memory) {
+        if (reportId >= impactReportCount) revert ReportDoesNotExist();
+        return impactReports[reportId].verifiers;
+    }
     
     /// @notice Get the number of green certifications
     /// @return uint256 Total count of green certifications
