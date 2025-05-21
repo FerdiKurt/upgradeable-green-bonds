@@ -1243,6 +1243,35 @@ contract UpgradeableGreenBonds is
         }
     }
     
+    /// @notice Set a security parameter
+    /// @param parameterName Name of the parameter
+    /// @param value New value for the parameter
+    /// @dev Only callable by admin
+    function setSecurityParameter(string memory parameterName, uint256 value) 
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+    {
+        bytes32 paramHash = keccak256(abi.encodePacked(parameterName));
+        
+        // Parameter-specific validation and setting
+        if (paramHash == keccak256(abi.encodePacked("earlyRedemptionPenaltyBps"))) {
+            uint256 oldValue = earlyRedemptionPenaltyBps;
+            earlyRedemptionPenaltyBps = value;
+            emit SecurityParameterUpdated(parameterName, oldValue, value);
+        }
+        else if (paramHash == keccak256(abi.encodePacked("quorum"))) {
+            uint256 oldValue = quorum;
+            quorum = value;
+            emit SecurityParameterUpdated(parameterName, oldValue, value);
+        }
+        else if (paramHash == keccak256(abi.encodePacked("votingPeriod"))) {
+            uint256 oldValue = votingPeriod;
+            votingPeriod = value;
+            emit SecurityParameterUpdated(parameterName, oldValue, value);
+        }
+        else {
+            revert("Unknown parameter");
+        }
     }
     
     /// @notice Allocate funds to a project component
