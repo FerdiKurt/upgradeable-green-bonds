@@ -577,52 +577,6 @@ contract UpgradeableGreenBonds is
         return totalInterest;
     }
     
-    /// @notice Calculate fund allocation for bond purchase
-    /// @param cost Total cost of bonds
-    /// @return couponAllocation Amount allocated for coupon payments
-    /// @return projectAllocation Amount allocated for project funds
-    /// @return emergencyAllocation Amount allocated for emergency reserve
-    function calculateFundAllocation(uint256 cost) internal view returns (
-        uint256 couponAllocation,
-        uint256 projectAllocation,
-        uint256 emergencyAllocation
-    ) {
-        uint256 maturity = maturityDate;
-        uint256 currentTime = block.timestamp;
-        
-        uint256 timeToMaturity = 0;
-        if (maturity > currentTime) {
-            unchecked {
-                timeToMaturity = maturity - currentTime;
-            }
-        }
-        
-        couponAllocation = 0;
-        if (timeToMaturity > 0) {
-            // Calculate annual coupon
-            uint256 annualCouponAmount;
-            
-            unchecked {
-                annualCouponAmount = cost * couponRate / 10000;
-            }
-            
-            // Calculate time-proportional coupon allocation
-            uint256 secondsPerYear = 365 days;
-            unchecked {
-                couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
-            }
-        }
-        
-        uint256 remainingAmount;
-        unchecked {
-            remainingAmount = cost - couponAllocation;
-            projectAllocation = (remainingAmount * 90) / 100;  // 90% for project
-            emergencyAllocation = remainingAmount - projectAllocation; // Remainder for emergency
-        }
-        
-        return (couponAllocation, projectAllocation, emergencyAllocation);
-    }
-    
     /// @notice Calculate claimable coupon for standard bonds
     /// @param investor Address of the investor
     /// @return uint256 Claimable coupon amount
