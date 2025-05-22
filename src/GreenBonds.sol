@@ -671,32 +671,48 @@ contract UpgradeableGreenBonds is
         // Transfer payment tokens from buyer to contract
         paymentToken.safeTransferFrom(msg.sender, address(this), cost);
         
-        // Calculate fund allocation
-        (uint256 couponAllocation, uint256 projectAllocation, uint256 emergencyAllocation) = 
-            calculateFundAllocation(cost);
+        // Calculate allocation for coupon payments
+        uint256 couponAllocation = 0;
+        if (maturityDate > currentTime) {
+            // Calculate annual coupon payment
+            uint256 annualCouponAmount = (cost * couponRate) / 10000;
+            
+            // Calculate time-proportional allocation
+            uint256 timeToMaturity = maturityDate - currentTime;
+            uint256 secondsPerYear = 365 days;
+            couponAllocation = (annualCouponAmount * timeToMaturity) / secondsPerYear;
+        }
+        
+        // Calculate remaining amount after coupon allocation
+        uint256 remainingAfterCoupon = cost - couponAllocation;
+        
+        // Allocate remaining funds 
+        uint256 principalAllocation = (remainingAfterCoupon * principalAllocationBps) / 10000;
+        uint256 projectAllocation = (remainingAfterCoupon * projectAllocationBps) / 10000;
+        
+        // Use the emergency allocation percentage or calculate as remainder
+        // This handles potential rounding errors to ensure total allocation equals cost
+        uint256 emergencyAllocation = remainingAfterCoupon - principalAllocation - projectAllocation;
         
         // Update treasury balances
         updateTreasury(
-            int256(cost),                // Principal reserve
-            int256(couponAllocation),    // Coupon reserve
-            int256(projectAllocation),   // Project funds
-            int256(emergencyAllocation)  // Emergency reserve
+            int256(principalAllocation),
+            int256(couponAllocation),
+            int256(projectAllocation),
+            int256(emergencyAllocation)
         );
         
         // Update bond state
         if (isTranche) {
             Tranche storage tranche = tranches[trancheId];
             tranche.holdings[msg.sender] += bondAmount;
-
             tranche.availableSupply = tranche.availableSupply - bondAmount;
-            
             tranche.lastCouponClaimDate[msg.sender] = currentTime;
             
             emit TrancheBondPurchased(msg.sender, trancheId, bondAmount, cost);
         } else {
             _mint(msg.sender, bondAmount);
             availableSupply -= bondAmount;
-            
             lastCouponClaimDate[msg.sender] = currentTime;
             
             emit BondPurchased(msg.sender, bondAmount, cost);
