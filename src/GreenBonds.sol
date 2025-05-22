@@ -103,7 +103,7 @@ contract UpgradeableGreenBonds is
     string[] public greenCertifications;
     
     // Impact reports
-    struct EnhancedImpactReport {
+    struct ImpactReport {
         string reportURI;
         string reportHash;
         uint256 timestamp;
@@ -119,7 +119,7 @@ contract UpgradeableGreenBonds is
     }
     
     // Impact reports storage
-    mapping(uint256 => EnhancedImpactReport) public impactReports;
+    mapping(uint256 => ImpactReport) public impactReports;
     uint256 public impactReportCount;
     
     // Tranches for different bond classes
