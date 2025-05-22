@@ -225,6 +225,14 @@ contract UpgradeableGreenBonds is
     event TrancheTransfer(uint256 indexed trancheId, address indexed from, address indexed to, uint256 amount);
     event EmergencyRecovery(address indexed recipient, uint256 amount);
     event SecurityParameterUpdated(string parameterName, uint256 oldValue, uint256 newValue);
+    event AllocationPercentagesUpdated(
+        uint256 oldPrincipalAllocationBps,
+        uint256 newPrincipalAllocationBps,
+        uint256 oldProjectAllocationBps,
+        uint256 newProjectAllocationBps,
+        uint256 oldEmergencyAllocationBps,
+        uint256 newEmergencyAllocationBps
+    );
     
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
