@@ -92,6 +92,11 @@ contract UpgradeableGreenBonds is
         uint256 emergencyReserve;  // For unexpected expenses
     }
     Treasury public treasury;
+
+    // Allocation percentages in basis points (e.g., 4500 = 45%)
+    uint256 public principalAllocationBps;
+    uint256 public projectAllocationBps;
+    uint256 public emergencyAllocationBps;
     
     // Early redemption parameters
     uint256 public earlyRedemptionPenaltyBps; // Penalty in basis points
