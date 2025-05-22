@@ -1049,7 +1049,7 @@ contract UpgradeableGreenBonds is
         if (requiredVerifications == 0) revert InvalidValue();
         
         uint256 reportId = impactReportCount++;
-        EnhancedImpactReport storage newReport = impactReports[reportId];
+        ImpactReport storage newReport = impactReports[reportId];
         
         newReport.reportURI = reportURI;
         newReport.reportHash = reportHash;
@@ -1076,7 +1076,7 @@ contract UpgradeableGreenBonds is
     function verifyImpactReport(uint256 reportId) external onlyRole(VERIFIER_ROLE) whenNotPaused {
         if (reportId >= impactReportCount) revert ReportDoesNotExist();
         
-        EnhancedImpactReport storage report = impactReports[reportId];
+        ImpactReport storage report = impactReports[reportId];
 
         address sender = msg.sender;
         
@@ -1130,7 +1130,7 @@ contract UpgradeableGreenBonds is
     function challengeImpactReport(uint256 reportId, string memory reason) external onlyRole(VERIFIER_ROLE) whenNotPaused {
         if (reportId >= impactReportCount) revert ReportDoesNotExist();
        
-        EnhancedImpactReport storage report = impactReports[reportId];
+        ImpactReport storage report = impactReports[reportId];
         
         address sender = msg.sender;
         
