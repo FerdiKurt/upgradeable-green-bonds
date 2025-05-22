@@ -285,6 +285,11 @@ contract UpgradeableGreenBonds is
         paymentToken = IERC20(_paymentTokenAddress);
         projectDescription = _projectDescription;
         impactMetrics = _impactMetrics;
+
+        // Initialize allocation percentages 
+        principalAllocationBps = 4500; // 45%
+        projectAllocationBps = 5000;   // 50%
+        emergencyAllocationBps = 500;  // 5%
         
         // Initialize governance parameters
         quorum = _totalSupply * 30 / 100; // 30% quorum
