@@ -393,6 +393,40 @@ contract UpgradeableGreenBonds is
             emit BondMaturityReached(maturityDate);
         }
     }
+
+    /// @notice Update allocation percentages
+    /// @param _principalAllocationBps Percentage for principal reserve in basis points
+    /// @param _projectAllocationBps Percentage for project funds in basis points
+    /// @param _emergencyAllocationBps Percentage for emergency reserve in basis points
+    /// @dev Only callable by admin
+    function updateAllocationPercentages(
+        uint256 _principalAllocationBps,
+        uint256 _projectAllocationBps,
+        uint256 _emergencyAllocationBps
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+        // Validate that percentages sum to 10000 (100%)
+        if (_principalAllocationBps + _projectAllocationBps + _emergencyAllocationBps != 10000) revert InvalidValue();
+        
+        // Store old values for event
+        uint256 oldPrincipalAllocationBps = principalAllocationBps;
+        uint256 oldProjectAllocationBps = projectAllocationBps;
+        uint256 oldEmergencyAllocationBps = emergencyAllocationBps;
+        
+        // Update percentages
+        principalAllocationBps = _principalAllocationBps;
+        projectAllocationBps = _projectAllocationBps;
+        emergencyAllocationBps = _emergencyAllocationBps;
+        
+        // Emit event
+        emit AllocationPercentagesUpdated(
+            oldPrincipalAllocationBps,
+            principalAllocationBps,
+            oldProjectAllocationBps,
+            projectAllocationBps,
+            oldEmergencyAllocationBps,
+            emergencyAllocationBps
+        );
+    }
     
     /// @notice Update treasury balances
     /// @param principal Amount to add to principal reserve
