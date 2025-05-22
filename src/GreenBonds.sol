@@ -1545,6 +1545,18 @@ contract UpgradeableGreenBonds is
             earlyRedemptionPenaltyBps
         );
     }
+
+    /// @notice Get current allocation percentages
+    /// @return principalPercentage Percentage for principal reserve in basis points
+    /// @return projectPercentage Percentage for project funds in basis points
+    /// @return emergencyPercentage Percentage for emergency reserve in basis points
+    function getAllocationPercentages() external view returns (
+        uint256 principalPercentage,
+        uint256 projectPercentage,
+        uint256 emergencyPercentage
+    ) {
+        return (principalAllocationBps, projectAllocationBps, emergencyAllocationBps);
+    }
     
     /// @notice Override of ERC20 transfer to handle coupon claim dates
     /// @param to Recipient address
