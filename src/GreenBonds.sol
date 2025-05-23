@@ -1264,72 +1264,22 @@ contract UpgradeableGreenBonds is
         }
     }
     
-    /// @notice Set a security parameter
-    /// @param parameterName Name of the parameter
-    /// @param value New value for the parameter
-    /// @dev Only callable by admin
-    function setSecurityParameter(string memory parameterName, uint256 value) 
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
-        bytes32 paramHash = keccak256(abi.encodePacked(parameterName));
-        
-        // Parameter-specific validation and setting
-        if (paramHash == keccak256(abi.encodePacked("earlyRedemptionPenaltyBps"))) {
-            uint256 oldValue = earlyRedemptionPenaltyBps;
-            earlyRedemptionPenaltyBps = value;
-            emit SecurityParameterUpdated(parameterName, oldValue, value);
-        }
-        else if (paramHash == keccak256(abi.encodePacked("quorum"))) {
-            uint256 oldValue = quorum;
-            quorum = value;
-            emit SecurityParameterUpdated(parameterName, oldValue, value);
-        }
-        else if (paramHash == keccak256(abi.encodePacked("votingPeriod"))) {
-            uint256 oldValue = votingPeriod;
-            votingPeriod = value;
-            emit SecurityParameterUpdated(parameterName, oldValue, value);
-        }
-        else {
-            revert("Unknown parameter");
-        }
-    }
-    
-    /// @notice Allocate funds to a project component
-    /// @param projectComponent Name of component
-    /// @param amount Amount to allocate
-    /// @dev Records allocation in events but doesn't actually move funds
-    function allocateFunds(string memory projectComponent, uint256 amount) 
-        external 
-        onlyRole(TREASURY_ROLE) 
-        whenNotPaused 
-    {
-        if (amount > treasury.projectFunds) revert InsufficientFunds();
-        
-        updateTreasury(
-            0,              // Principal reserve (no change)
-            0,              // Coupon reserve (no change)
-            -int256(amount), // Deduct from project funds
-            0               // Emergency reserve (no change)
-        );
-        
-        emit FundsAllocated(projectComponent, amount);
-    }
-    
-    /// @notice Withdraw funds from treasury for project implementation
-    /// @param recipient Recipient address
+    /// @notice Withdraw funds from project treasury
+    /// @param recipient Address to receive the funds
     /// @param amount Amount to withdraw
-    /// @param purpose Description of withdrawal purpose
-    /// @dev Only callable by treasurer
-    function withdrawProjectFunds(address recipient, uint256 amount, string memory purpose) 
-        external 
-        onlyRole(TREASURY_ROLE) 
-        nonReentrant 
-        whenNotPaused 
-    {
+    /// @param category Project category (e.g., "Solar Equipment", "Installation", "Permits")
+    /// @param description Detailed description of the expense
+    /// @dev Only callable by treasury role. All withdrawals are logged for transparency.
+    function withdrawProjectFunds(
+        address recipient, 
+        uint256 amount, 
+        string memory category,
+        string memory description
+    ) external onlyRole(TREASURY_ROLE) nonReentrant whenNotPaused {
         if (recipient == address(0)) revert InvalidValue();
         if (amount == 0) revert InvalidValue();
-        if (bytes(purpose).length == 0) revert EmptyString();
+        if (bytes(category).length == 0) revert EmptyString();
+        if (bytes(description).length == 0) revert EmptyString();
         if (amount > treasury.projectFunds) revert InsufficientFunds();
         
         updateTreasury(
@@ -1339,10 +1289,10 @@ contract UpgradeableGreenBonds is
             0               // Emergency reserve (no change)
         );
         
-        // Transfer funds after state updates
+        // Transfer funds
         safeTransferTokens(recipient, amount);
         
-        emit FundWithdrawal(recipient, amount, purpose, block.timestamp);
+        emit FundWithdrawal(recipient, amount, category, description, block.timestamp);
     }
     
     /// @notice Emergency withdraw function for issuer (time-locked)
