@@ -200,7 +200,8 @@ contract UpgradeableGreenBonds is
     event FundWithdrawal(
         address indexed recipient,
         uint256 amount,
-        string purpose,
+        string category,
+        string description,
         uint256 timestamp
     );
     event DashboardContractUpdated(address newDashboard);
