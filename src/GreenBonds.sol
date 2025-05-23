@@ -225,7 +225,6 @@ contract UpgradeableGreenBonds is
     event GreenPremiumRateUpdated(uint256 oldRate, uint256 newRate);
     event TrancheTransfer(uint256 indexed trancheId, address indexed from, address indexed to, uint256 amount);
     event EmergencyRecovery(address indexed recipient, uint256 amount);
-    event SecurityParameterUpdated(string parameterName, uint256 oldValue, uint256 newValue);
     event AllocationPercentagesUpdated(
         uint256 oldPrincipalAllocationBps,
         uint256 newPrincipalAllocationBps,
