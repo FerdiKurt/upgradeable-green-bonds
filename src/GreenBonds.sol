@@ -55,6 +55,7 @@ contract UpgradeableGreenBonds is
     error RateExceedsMaximum();
     error RecoveryNotAuthorized();
     error InvalidRecoveryAmount();
+    error OperationAlreadyExecuted();
 
     /// @notice Role definitions
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
