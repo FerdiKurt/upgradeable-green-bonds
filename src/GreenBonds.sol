@@ -167,6 +167,7 @@ contract UpgradeableGreenBonds is
     // Timelock for critical operations
     mapping(bytes32 => uint256) public operationTimestamps;
     uint256 public constant TIMELOCK_PERIOD = 2 days;
+    mapping(bytes32 => bool) public isOperationExecuted;
     
     // Dashboard contract reference
     address public dashboardContract;
