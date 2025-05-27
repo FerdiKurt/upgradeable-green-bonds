@@ -1278,18 +1278,15 @@ contract UpgradeableGreenBonds is
     /// @param recipient Address to receive the funds
     /// @param amount Amount to withdraw
     /// @param category Project category (e.g., "Solar Equipment", "Installation", "Permits")
-    /// @param description Detailed description of the expense
     /// @dev Only callable by treasury role. All withdrawals are logged for transparency.
     function withdrawProjectFunds(
         address recipient, 
         uint256 amount, 
-        string memory category,
-        string memory description
+        string memory category
     ) external onlyRole(TREASURY_ROLE) nonReentrant whenNotPaused {
         if (recipient == address(0)) revert InvalidValue();
         if (amount == 0) revert InvalidValue();
         if (bytes(category).length == 0) revert EmptyString();
-        if (bytes(description).length == 0) revert EmptyString();
         if (amount > treasury.projectFunds) revert InsufficientFunds();
         
         updateTreasury(
@@ -1302,7 +1299,7 @@ contract UpgradeableGreenBonds is
         // Transfer funds
         safeTransferTokens(recipient, amount);
         
-        emit FundWithdrawal(recipient, amount, category, description, block.timestamp);
+        emit FundWithdrawal(recipient, amount, category, block.timestamp);
     }
     
     /// @notice Emergency withdraw function for issuer (time-locked)
