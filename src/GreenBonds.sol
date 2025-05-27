@@ -997,7 +997,7 @@ contract UpgradeableGreenBonds is
     /// @param challengePeriod Duration in seconds for challenge period
     /// @param requiredVerifications Number of verifiers required to finalize
     /// @dev Only callable by issuer
-    function addEnhancedImpactReport(
+    function addImpactReport(
         string memory reportURI,
         string memory reportHash,
         string memory impactMetricsJson,
