@@ -1223,7 +1223,7 @@ contract UpgradeableGreenBonds is
     {
         if (newCouponPeriod == 0) revert InvalidValue();
         
-        bytes32 operationId = keccak256(abi.encodePacked("updateCouponPeriod", newCouponPeriod, block.timestamp));
+        bytes32 operationId = keccak256(abi.encodePacked("updateCouponPeriod", newCouponPeriod));
         
         if (checkAndScheduleOperation(operationId)) {
             uint256 oldCouponPeriod = couponPeriod;
