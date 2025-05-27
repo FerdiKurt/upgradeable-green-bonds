@@ -928,6 +928,8 @@ contract UpgradeableGreenBonds is
         );
     }
     
+    //TODO: Calculate pro-rated coupons based on when each batch of tokens was received
+    //WARNING: The current implementation favors recipients in subsequent transfers by not resetting their claim date to the current timestamp.
     /// @notice Transfer bonds within a tranche to another address
     /// @param trancheId ID of the tranche
     /// @param to Recipient address
