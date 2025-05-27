@@ -333,11 +333,17 @@ contract UpgradeableGreenBonds is
         emit OperationScheduled(operationId, block.timestamp + TIMELOCK_PERIOD);
     }
     
-    /// @notice Check if a timelock operation can be executed
-    /// @param operationId Unique identifier for the operation
-    /// @return bool True if operation can be executed, false if scheduling required
-    /// @dev Returns false if not scheduled, schedules the operation, and reverts if not expired
+    /**
+    * @notice Checks operation status and schedules or executes based on timelock conditions
+    * @dev This function handles the complete lifecycle of a timelocked operation
+    * @param operationId The unique identifier for the operation to check/schedule
+    * @return bool Returns true if operation is ready for execution, false if newly scheduled
+    */
     function checkAndScheduleOperation(bytes32 operationId) internal returns (bool) {
+        if (isOperationExecuted[operationId]) {
+            revert OperationAlreadyExecuted();
+        }
+        
         if (operationTimestamps[operationId] == 0) {
             scheduleOperation(operationId);
             return false;
@@ -347,6 +353,7 @@ contract UpgradeableGreenBonds is
             revert TimelockNotExpired();
         }
         
+        isOperationExecuted[operationId] = true;
         return true;
     }
     
