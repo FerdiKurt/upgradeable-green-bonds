@@ -202,7 +202,6 @@ contract UpgradeableGreenBonds is
         address indexed recipient,
         uint256 amount,
         string category,
-        string description,
         uint256 timestamp
     );
     event DashboardContractUpdated(address newDashboard);
