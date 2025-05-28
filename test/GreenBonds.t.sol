@@ -43,3 +43,20 @@ contract MockERC20 is ERC20 {
     string constant PROJECT_DESCRIPTION = "Solar farm development";
     string constant IMPACT_METRICS = "CO2 reduction, energy generation";
     
+    event BondPurchased(address indexed investor, uint256 amount, uint256 tokensSpent);
+    event CouponClaimed(address indexed investor, uint256 amount);
+    event BondRedeemed(address indexed investor, uint256 amount, uint256 tokensReceived);
+    event ImpactReportAdded(uint256 indexed reportId, string reportURI);
+    event ImpactReportVerified(uint256 indexed reportId, address verifier);
+    event ImpactReportFinalized(uint256 indexed reportId);
+    event CouponRateUpdated(uint256 newRate);
+    event BondMaturityReached(uint256 maturityDate);
+    event TrancheAdded(uint256 indexed trancheId, string name, uint256 couponRate, uint256 seniority);
+    event ProposalCreated(uint256 indexed proposalId, address proposer, string description);
+    event VoteCast(address indexed voter, uint256 indexed proposalId, bool support, uint256 weight);
+    event ProposalExecuted(uint256 indexed proposalId);
+    event EarlyRedemptionStatusChanged(bool enabled);
+    event BondRedeemedEarly(address indexed investor, uint256 amount, uint256 tokensReceived, uint256 penalty);
+    event EmergencyRecovery(address indexed recipient, uint256 amount);
+    event FundWithdrawal(address indexed recipient, uint256 amount, string category, uint256 timestamp);
+    
