@@ -60,3 +60,49 @@ contract MockERC20 is ERC20 {
     event EmergencyRecovery(address indexed recipient, uint256 amount);
     event FundWithdrawal(address indexed recipient, uint256 amount, string category, uint256 timestamp);
     
+    function setUp() public {
+        // Deploy mock payment token
+        paymentToken = new MockERC20("USD Coin", "USDC");
+        
+        // Deploy implementation
+        implementation = new UpgradeableGreenBonds();
+        
+        // Prepare initialization data
+        bytes memory initData = abi.encodeWithSelector(
+            UpgradeableGreenBonds.initialize.selector,
+            BOND_NAME,
+            BOND_SYMBOL,
+            FACE_VALUE,
+            TOTAL_SUPPLY,
+            BASE_COUPON_RATE,
+            MAX_COUPON_RATE,
+            COUPON_PERIOD,
+            MATURITY_PERIOD,
+            address(paymentToken),
+            PROJECT_DESCRIPTION,
+            IMPACT_METRICS
+        );
+        
+        // Deploy proxy with initialization
+        proxy = new ERC1967Proxy(address(implementation), initData);
+        greenBonds = UpgradeableGreenBonds(address(proxy));
+        
+        // Setup roles
+        vm.startPrank(address(this)); // Default admin is deployer
+        greenBonds.grantRole(greenBonds.DEFAULT_ADMIN_ROLE(), admin);
+        greenBonds.grantRole(greenBonds.ISSUER_ROLE(), issuer);
+        greenBonds.grantRole(greenBonds.VERIFIER_ROLE(), verifier);
+        greenBonds.grantRole(greenBonds.TREASURY_ROLE(), treasurer);
+        greenBonds.grantRole(greenBonds.UPGRADER_ROLE(), upgrader);
+        vm.stopPrank();
+        
+        // Distribute payment tokens
+        paymentToken.transfer(investor1, 10000000 * 10**18);
+        paymentToken.transfer(investor2, 10000000 * 10**18);
+        
+        // Approve spending
+        vm.prank(investor1);
+        paymentToken.approve(address(greenBonds), type(uint256).max);
+        vm.prank(investor2);
+        paymentToken.approve(address(greenBonds), type(uint256).max);
+    }
