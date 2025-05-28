@@ -31,3 +31,15 @@ contract MockERC20 is ERC20 {
     address public investor2 = address(0x6);
     address public upgrader = address(0x7);
     
+    // Bond parameters
+    string constant BOND_NAME = "Green Energy Bond";
+    string constant BOND_SYMBOL = "GEB";
+    uint256 constant FACE_VALUE = 1000 * 10**18; // 1000 tokens
+    uint256 constant TOTAL_SUPPLY = 10000; // 10,000 bonds
+    uint256 constant BASE_COUPON_RATE = 500; // 5%
+    uint256 constant MAX_COUPON_RATE = 1000; // 10%
+    uint256 constant COUPON_PERIOD = 30 days;
+    uint256 constant MATURITY_PERIOD = 365 days;
+    string constant PROJECT_DESCRIPTION = "Solar farm development";
+    string constant IMPACT_METRICS = "CO2 reduction, energy generation";
+    
