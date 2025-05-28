@@ -1312,7 +1312,7 @@ contract UpgradeableGreenBonds is
     {
         if (amount == 0) revert InvalidValue();
         
-        bytes32 operationId = keccak256(abi.encodePacked("emergencyWithdraw", amount, block.timestamp));
+        bytes32 operationId = keccak256(abi.encodePacked("emergencyWithdraw", amount));
         
         if (checkAndScheduleOperation(operationId)) {
             if (amount > treasury.emergencyReserve) revert InsufficientFunds();
@@ -1520,7 +1520,7 @@ contract UpgradeableGreenBonds is
         if (newQuorum == 0) revert InvalidValue();
         if (newVotingPeriod == 0) revert InvalidValue();
         
-        bytes32 operationId = keccak256(abi.encodePacked("updateGovernance", newQuorum, newVotingPeriod, block.timestamp));
+        bytes32 operationId = keccak256(abi.encodePacked("updateGovernance", newQuorum, newVotingPeriod));
         
         if (checkAndScheduleOperation(operationId)) {
             uint256 oldQuorum = quorum;
