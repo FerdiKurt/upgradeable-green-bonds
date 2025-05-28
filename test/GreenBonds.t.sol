@@ -22,3 +22,12 @@ contract MockERC20 is ERC20 {
     UpgradeableGreenBonds public implementation;
     MockERC20 public paymentToken;
     ERC1967Proxy public proxy;
+    
+    address public admin = address(0x1);
+    address public issuer = address(0x2);
+    address public verifier = address(0x3);
+    address public treasurer = address(0x4);
+    address public investor1 = address(0x5);
+    address public investor2 = address(0x6);
+    address public upgrader = address(0x7);
+    
