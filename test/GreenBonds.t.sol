@@ -18,3 +18,7 @@ contract MockERC20 is ERC20 {
     }
 }
 
+    UpgradeableGreenBonds public greenBonds;
+    UpgradeableGreenBonds public implementation;
+    MockERC20 public paymentToken;
+    ERC1967Proxy public proxy;
