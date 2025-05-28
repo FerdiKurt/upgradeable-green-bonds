@@ -1265,7 +1265,7 @@ contract UpgradeableGreenBonds is
         if (recoveryAddress == address(0)) revert InvalidValue();
         if (amount == 0) revert InvalidRecoveryAmount();
         
-        bytes32 operationId = keccak256(abi.encodePacked("emergencyRecovery", recoveryAddress, amount, block.timestamp));
+        bytes32 operationId = keccak256(abi.encodePacked("emergencyRecovery", recoveryAddress, amount));
         
         if (checkAndScheduleOperation(operationId)) {
             uint256 transferAmount = safeTransferTokens(recoveryAddress, amount);
