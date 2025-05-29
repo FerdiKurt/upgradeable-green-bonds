@@ -106,3 +106,20 @@ contract MockERC20 is ERC20 {
         vm.prank(investor2);
         paymentToken.approve(address(greenBonds), type(uint256).max);
     }
+    
+    // Test initialization
+    function testInitialization() public view {
+        assertEq(greenBonds.bondName(), BOND_NAME);
+        assertEq(greenBonds.bondSymbol(), BOND_SYMBOL);
+        assertEq(greenBonds.faceValue(), FACE_VALUE);
+        assertEq(greenBonds.bondTotalSupply(), TOTAL_SUPPLY);
+        assertEq(greenBonds.availableSupply(), TOTAL_SUPPLY);
+        assertEq(greenBonds.baseCouponRate(), BASE_COUPON_RATE);
+        assertEq(greenBonds.couponRate(), BASE_COUPON_RATE);
+        assertEq(greenBonds.maxCouponRate(), MAX_COUPON_RATE);
+        assertEq(greenBonds.couponPeriod(), COUPON_PERIOD);
+        assertEq(address(greenBonds.paymentToken()), address(paymentToken));
+        assertEq(greenBonds.projectDescription(), PROJECT_DESCRIPTION);
+        assertEq(greenBonds.impactMetrics(), IMPACT_METRICS);
+    }
+    
