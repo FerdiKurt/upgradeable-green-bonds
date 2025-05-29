@@ -291,3 +291,60 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBondsEarly(20); // More than owned
     }
     
+    // Test tranches
+    function testAddTranche() public {
+        string memory trancheName = "Senior Tranche";
+        uint256 trancheFaceValue = 2000 * 10**18;
+        uint256 trancheCouponRate = 400; // 4%
+        uint256 seniority = 1;
+        uint256 trancheSupply = 1000;
+        
+        vm.expectEmit(true, true, true, true);
+        emit TrancheAdded(0, trancheName, trancheCouponRate, seniority);
+        
+        vm.prank(issuer);
+        greenBonds.addTranche(trancheName, trancheFaceValue, trancheCouponRate, seniority, trancheSupply);
+        
+        assertEq(greenBonds.trancheCount(), 1);
+        
+        (string memory name, uint256 faceValue, uint256 couponRate, uint256 sen, uint256 totalSupply, uint256 availableSupply) = 
+            greenBonds.getTrancheDetails(0);
+        
+        assertEq(name, trancheName);
+        assertEq(faceValue, trancheFaceValue);
+        assertEq(couponRate, trancheCouponRate);
+        assertEq(sen, seniority);
+        assertEq(totalSupply, trancheSupply);
+        assertEq(availableSupply, trancheSupply);
+    }
+    
+    function testPurchaseTrancheBonds() public {
+        // Add tranche first
+        vm.prank(issuer);
+        greenBonds.addTranche("Senior", 2000 * 10**18, 400, 1, 1000);
+        
+        uint256 bondAmount = 5;
+        uint256 trancheId = 0;
+        
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(trancheId, bondAmount);
+        
+        assertEq(greenBonds.getTrancheHoldings(trancheId, investor1), bondAmount);
+    }
+    
+    function testTransferTrancheBonds() public {
+        // Setup tranche and purchase
+        vm.prank(issuer);
+        greenBonds.addTranche("Senior", 2000 * 10**18, 400, 1, 1000);
+        
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(0, 10);
+        
+        // Transfer bonds
+        vm.prank(investor1);
+        greenBonds.transferTrancheBonds(0, investor2, 5);
+        
+        assertEq(greenBonds.getTrancheHoldings(0, investor1), 5);
+        assertEq(greenBonds.getTrancheHoldings(0, investor2), 5);
+    }
+    
