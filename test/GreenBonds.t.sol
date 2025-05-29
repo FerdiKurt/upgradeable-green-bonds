@@ -479,3 +479,43 @@ contract MockERC20 is ERC20 {
         greenBonds.castVote(proposalId, true);
     }
     
+    function testExecuteProposal() public {
+        // First, grant ISSUER_ROLE to the contract itself so it can execute the proposal
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
+        
+        bytes memory callData = abi.encodeWithSelector(
+            greenBonds.addGreenCertification.selector,
+            "New Green Certification"
+        );
+        
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal("Add certification", address(greenBonds), callData);
+        
+        // Get enough voting power (30% of 10,000 total supply = 3,000 bonds minimum for quorum)
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(3500); // Buy 3,500 bonds to exceed quorum
+        
+        // Vote in favor
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId, true);
+        
+        // Fast forward past voting period
+        vm.warp(block.timestamp + 8 days);
+        
+        // Execute proposal
+        vm.prank(investor1);
+        greenBonds.executeProposal(proposalId);
+        
+        // Verify the change took effect
+        assertEq(greenBonds.getGreenCertificationCount(), 1);
+        
+        // Verify proposal is marked as executed
+        (address proposer, , , address target, uint256 forVotes, uint256 againstVotes, , uint256 endTime, bool executed) = greenBonds.proposals(proposalId);
+        assertTrue(executed);
+        assertTrue(block.timestamp > endTime);
+        assertEq(proposer, issuer);
+        assertTrue(forVotes > againstVotes);
+        assertEq(target, address(greenBonds));
+    }
+
