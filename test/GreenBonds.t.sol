@@ -162,3 +162,45 @@ contract MockERC20 is ERC20 {
         vm.expectRevert(UpgradeableGreenBonds.BondMatured.selector);
         greenBonds.purchaseBonds(1);
     }
+    
+    // Test coupon claiming
+    function testClaimCoupon() public {
+        uint256 bondAmount = 10;
+        
+        // Purchase bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Fast forward time
+        vm.warp(block.timestamp + 365 days);
+        
+        uint256 claimableAmount = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(claimableAmount > 0);
+        
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        
+        vm.expectEmit(true, true, true, true);
+        emit CouponClaimed(investor1, claimableAmount);
+        
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        assertEq(balanceAfter - balanceBefore, claimableAmount);
+    }
+    
+    function testClaimCouponFailures() public {
+        // Test no bonds
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.NoCouponAvailable.selector);
+        greenBonds.claimCoupon();
+        
+        // Purchase bonds but no time passed
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.NoCouponAvailable.selector);
+        greenBonds.claimCoupon();
+    }
+    
