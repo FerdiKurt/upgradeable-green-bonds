@@ -123,3 +123,42 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.impactMetrics(), IMPACT_METRICS);
     }
     
+    // Test bond purchase
+    function testPurchaseBonds() public {
+        uint256 bondAmount = 10;
+        uint256 cost = bondAmount * FACE_VALUE;
+        
+        vm.expectEmit(true, true, true, true);
+        emit BondPurchased(investor1, bondAmount, cost);
+        
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        assertEq(greenBonds.balanceOf(investor1), bondAmount);
+        assertEq(greenBonds.availableSupply(), TOTAL_SUPPLY - bondAmount);
+        
+        // Check treasury allocation
+        (uint256 principal, uint256 coupon, uint256 project, uint256 emergency, ) = greenBonds.getTreasuryStatus();
+        assertTrue(principal > 0);
+        assertTrue(coupon > 0);
+        assertTrue(project > 0);
+        assertTrue(emergency > 0);
+    }
+    
+    function testPurchaseBondsFailures() public {
+        // Test zero amount
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidBondAmount.selector);
+        greenBonds.purchaseBonds(0);
+        
+        // Test insufficient supply
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InsufficientBondsAvailable.selector);
+        greenBonds.purchaseBonds(TOTAL_SUPPLY + 1);
+        
+        // Test after maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD + 1);
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.BondMatured.selector);
+        greenBonds.purchaseBonds(1);
+    }
