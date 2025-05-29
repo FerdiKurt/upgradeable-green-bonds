@@ -519,3 +519,108 @@ contract MockERC20 is ERC20 {
         assertEq(target, address(greenBonds));
     }
 
+    function testExecuteProposalWithTimelock() public {
+        // Grant contract ISSUER_ROLE so it can execute the proposal
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
+        
+        uint256 originalPeriod = greenBonds.couponPeriod(); // 30 days
+        
+        // Test 1: Direct call with proper timelock flow
+        // First call: Schedule the operation
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(60 days);
+        
+        // Value should remain unchanged (operation scheduled, not executed)
+        assertEq(greenBonds.couponPeriod(), originalPeriod);
+        
+        // Try to execute before timelock expires (should fail)
+        vm.prank(issuer);
+        vm.expectRevert(UpgradeableGreenBonds.TimelockNotExpired.selector);
+        greenBonds.updateCouponPeriod(60 days);
+        
+        // Fast forward past timelock period (2 days)
+        vm.warp(block.timestamp + 3 days);
+        
+        // Second call: Execute the scheduled operation
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(60 days);
+        
+        // Now the value should be updated
+        assertEq(greenBonds.couponPeriod(), 60 days);
+        
+        // Try to execute the same operation again (should fail)
+        vm.prank(issuer);
+        vm.expectRevert(UpgradeableGreenBonds.OperationAlreadyExecuted.selector);
+        greenBonds.updateCouponPeriod(60 days);
+        
+        // Test 2: Governance proposal with timelock
+        bytes memory callData = abi.encodeWithSelector(
+            greenBonds.updateCouponPeriod.selector,
+            90 days
+        );
+        
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal(
+            "Update coupon period to 90 days", 
+            address(greenBonds), 
+            callData
+        );
+        
+        // Setup voting
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(3500); // 35% of total supply for quorum
+        
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId, true);
+        
+        // Fast forward past voting period
+        vm.warp(block.timestamp + 8 days);
+        
+        // Execute proposal - this will SCHEDULE the updateCouponPeriod operation
+        vm.prank(investor1);
+        greenBonds.executeProposal(proposalId);
+        
+        // Value should still be 60 days (governance scheduled the operation)
+        assertEq(greenBonds.couponPeriod(), 60 days);
+        
+        // Verify proposal is marked as executed
+        (, , , , , , , , bool executed) = greenBonds.proposals(proposalId);
+        assertTrue(executed);
+        
+        // Fast forward past timelock period for governance operation
+        vm.warp(block.timestamp + 3 days);
+        
+        // Now trigger the scheduled governance operation
+        // Note: This needs to be called by someone with ISSUER_ROLE
+        // The contract itself has been granted this role for governance execution
+        vm.prank(address(greenBonds));
+        greenBonds.updateCouponPeriod(90 days);
+        
+        // Now the governance operation should be executed
+        assertEq(greenBonds.couponPeriod(), 90 days);
+        
+        // Test 3: same operationId should fail
+        vm.prank(address(greenBonds));
+        vm.expectRevert(UpgradeableGreenBonds.OperationAlreadyExecuted.selector);
+        greenBonds.updateCouponPeriod(90 days);
+        
+        // Test 4: Schedule a new operation with different parameters
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(120 days); // Different value = different operationId
+        
+        // Should still be 90 days (new operation scheduled)
+        assertEq(greenBonds.couponPeriod(), 90 days);
+        
+        // Fast forward and execute
+        vm.warp(block.timestamp + 3 days);
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(120 days);
+        
+        // Should now be updated
+        assertEq(greenBonds.couponPeriod(), 120 days);
+        
+        // Final verification
+        assertEq(greenBonds.proposalCount(), 1);
+    }    
+    
