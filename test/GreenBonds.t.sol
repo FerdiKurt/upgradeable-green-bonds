@@ -444,3 +444,38 @@ contract MockERC20 is ERC20 {
         assertEq(verifiers.length, 0);
     }
     
+    // Test governance
+    function testCreateProposal() public {
+        string memory description = "Update coupon rate";
+        address target = address(greenBonds);
+        bytes memory callData = abi.encodeWithSelector(
+            greenBonds.updateCouponPeriod.selector,
+            60 days
+        );
+        
+        vm.expectEmit(true, true, true, true);
+        emit ProposalCreated(0, issuer, description);
+        
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal(description, target, callData);
+        
+        assertEq(proposalId, 0);
+        assertEq(greenBonds.proposalCount(), 1);
+    }
+    
+    function testVoteOnProposal() public {
+        // Create proposal
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal("Test", address(0), "");
+        
+        // Purchase bonds to get voting power
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        vm.expectEmit(true, true, true, true);
+        emit VoteCast(investor1, proposalId, true, 100);
+        
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId, true);
+    }
+    
