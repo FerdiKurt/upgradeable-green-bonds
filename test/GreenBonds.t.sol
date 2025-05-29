@@ -204,3 +204,43 @@ contract MockERC20 is ERC20 {
         greenBonds.claimCoupon();
     }
     
+    // Test bond redemption
+    function testRedeemBonds() public {
+        uint256 bondAmount = 10;
+        
+        // Purchase bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Fast forward to maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD + 1);
+        
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        uint256 expectedPrincipal = bondAmount * FACE_VALUE;
+        
+        vm.expectEmit(true, true, true, true);
+        emit BondRedeemed(investor1, bondAmount, expectedPrincipal);
+        
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+        
+        assertEq(greenBonds.balanceOf(investor1), 0);
+        assertTrue(paymentToken.balanceOf(investor1) >= balanceBefore + expectedPrincipal);
+    }
+    
+    function testRedeemBondsFailures() public {
+        // Test before maturity
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.BondNotMatured.selector);
+        greenBonds.redeemBonds();
+        
+        // Test no bonds
+        vm.warp(block.timestamp + MATURITY_PERIOD + 1);
+        vm.prank(investor2);
+        vm.expectRevert(UpgradeableGreenBonds.NoBondsToRedeem.selector);
+        greenBonds.redeemBonds();
+    }
+    
