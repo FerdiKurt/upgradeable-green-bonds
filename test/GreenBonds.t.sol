@@ -348,3 +348,99 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.getTrancheHoldings(0, investor2), 5);
     }
     
+    // Test impact reports
+    function testAddImpactReport() public {
+        string memory reportURI = "https://example.com/report1";
+        string memory reportHash = "0x123456789abcdef";
+        string memory metricsJson = '{"co2_reduction": 1000, "energy_generated": 5000}';
+        string[] memory metricNames = new string[](2);
+        metricNames[0] = "co2_reduction";
+        metricNames[1] = "energy_generated";
+        uint256[] memory metricValues = new uint256[](2);
+        metricValues[0] = 1000;
+        metricValues[1] = 5000;
+        
+        vm.expectEmit(true, true, true, true);
+        emit ImpactReportAdded(0, reportURI);
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport(
+            reportURI,
+            reportHash,
+            metricsJson,
+            metricNames,
+            metricValues,
+            7 days,
+            2
+        );
+        
+        assertEq(greenBonds.getImpactReportCount(), 1);
+        assertEq(greenBonds.getImpactMetricValue(0, "co2_reduction"), 1000);
+        assertEq(greenBonds.getImpactMetricValue(0, "energy_generated"), 5000);
+    }
+    
+    function testVerifyImpactReport() public {
+        // Add report first
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "co2_reduction";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 1000;
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport(
+            "https://example.com/report",
+            "0x123",
+            "{}",
+            metricNames,
+            metricValues,
+            7 days,
+            1 // Only need 1 verification
+        );
+        
+        uint256 oldRate = greenBonds.couponRate();
+        
+        vm.expectEmit(true, true, true, true);
+        emit ImpactReportVerified(0, verifier);
+        
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        // Should increase coupon rate
+        assertTrue(greenBonds.couponRate() > oldRate);
+    }
+    
+    function testChallengeImpactReport() public {
+        // Add report and verify
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "co2_reduction";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 1000;
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport(
+            "https://example.com/report",
+            "0x123",
+            "{}",
+            metricNames,
+            metricValues,
+            7 days,
+            2
+        );
+        
+        // Add another verifier
+        vm.prank(admin);
+        greenBonds.addVerifier(address(0x8));
+        
+        // First verification
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        // Challenge the report
+        vm.prank(address(0x8));
+        greenBonds.challengeImpactReport(0, "Metrics appear inflated");
+        
+        // Verification count should be reset
+        address[] memory verifiers = greenBonds.getReportVerifiers(0);
+        assertEq(verifiers.length, 0);
+    }
+    
