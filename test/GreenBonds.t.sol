@@ -244,3 +244,50 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBonds();
     }
     
+    // Test early redemption
+    function testEarlyRedemption() public {
+        uint256 bondAmount = 10;
+        
+        // Enable early redemption
+        vm.prank(issuer);
+        greenBonds.setEarlyRedemptionParams(true, 300); // 3% penalty
+        
+        // Purchase bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        uint256 redemptionValue = bondAmount * FACE_VALUE;
+        uint256 penalty = redemptionValue * 300 / 10000;
+        uint256 expectedPayout = redemptionValue - penalty;
+        
+        vm.expectEmit(true, true, true, true);
+        emit BondRedeemedEarly(investor1, bondAmount, expectedPayout, penalty);
+        
+        vm.prank(investor1);
+        greenBonds.redeemBondsEarly(bondAmount);
+        
+        assertEq(greenBonds.balanceOf(investor1), 0);
+    }
+    
+    function testEarlyRedemptionFailures() public {
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        // Test when disabled
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.EarlyRedemptionNotEnabled.selector);
+        greenBonds.redeemBondsEarly(5);
+        
+        // Enable and test invalid amount
+        vm.prank(issuer);
+        greenBonds.setEarlyRedemptionParams(true, 300);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidBondAmount.selector);
+        greenBonds.redeemBondsEarly(0);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidBondAmount.selector);
+        greenBonds.redeemBondsEarly(20); // More than owned
+    }
+    
