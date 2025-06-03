@@ -704,3 +704,20 @@ contract MockERC20 is ERC20 {
         greenBonds.pause();
     }
     
+    // Test pausable functionality
+    function testPausable() public {
+        vm.prank(admin);
+        greenBonds.pause();
+        
+        vm.prank(investor1);
+        vm.expectRevert();
+        greenBonds.purchaseBonds(1);
+        
+        vm.prank(admin);
+        greenBonds.unpause();
+        
+        // Should work after unpause
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1);
+    }
+
