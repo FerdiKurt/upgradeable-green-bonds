@@ -645,3 +645,45 @@ contract MockERC20 is ERC20 {
         assertEq(projectFundsAfter, projectFundsBefore - withdrawAmount);
     }
     
+    function testEmergencyRecovery() public {
+        // Add some funds to contract for recovery
+        paymentToken.transfer(address(greenBonds), 1000 * 10**18);
+        
+        uint256 recoveryAmount = 500 * 10**18;
+        uint256 contractBalanceBefore = paymentToken.balanceOf(address(greenBonds));
+        uint256 adminBalanceBefore = paymentToken.balanceOf(admin);
+        
+        // First call: Schedule the operation
+        // Should emit OperationScheduled event
+        vm.prank(admin);
+        greenBonds.emergencyRecovery(admin, recoveryAmount);
+        
+        // Balances unchanged (operation scheduled)
+        assertEq(paymentToken.balanceOf(address(greenBonds)), contractBalanceBefore);
+        assertEq(paymentToken.balanceOf(admin), adminBalanceBefore);
+        
+        // Try to execute before timelock expires (should fail)
+        vm.prank(admin);
+        vm.expectRevert(UpgradeableGreenBonds.TimelockNotExpired.selector);
+        greenBonds.emergencyRecovery(admin, recoveryAmount);
+        
+        // Fast forward past timelock period
+        vm.warp(block.timestamp + 3 days);
+        
+        // Second call: Execute the operation
+        // Should emit both EmergencyRecovery and OperationExecuted events
+        vm.expectEmit(true, true, true, true);
+        emit EmergencyRecovery(admin, recoveryAmount);
+        
+        vm.prank(admin);
+        greenBonds.emergencyRecovery(admin, recoveryAmount);
+        
+        // Balances should now be updated
+        assertEq(paymentToken.balanceOf(address(greenBonds)), contractBalanceBefore - recoveryAmount);
+        assertEq(paymentToken.balanceOf(admin), adminBalanceBefore + recoveryAmount);
+        
+        // Try to execute again (should fail)
+        vm.prank(admin);
+        vm.expectRevert(UpgradeableGreenBonds.OperationAlreadyExecuted.selector);
+        greenBonds.emergencyRecovery(admin, recoveryAmount);
+    }
