@@ -624,3 +624,24 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.proposalCount(), 1);
     }    
     
+    // Test fund management
+    function testWithdrawProjectFunds() public {
+        // Purchase bonds to create project funds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        (,, uint256 projectFundsBefore,,) = greenBonds.getTreasuryStatus();
+        assertTrue(projectFundsBefore > 0);
+        
+        uint256 withdrawAmount = projectFundsBefore / 2;
+        
+        vm.expectEmit(true, true, true, true);
+        emit FundWithdrawal(treasurer, withdrawAmount, "Solar panels", block.timestamp);
+        
+        vm.prank(treasurer);
+        greenBonds.withdrawProjectFunds(treasurer, withdrawAmount, "Solar panels");
+        
+        (,, uint256 projectFundsAfter,,) = greenBonds.getTreasuryStatus();
+        assertEq(projectFundsAfter, projectFundsBefore - withdrawAmount);
+    }
+    
