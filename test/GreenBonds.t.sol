@@ -687,3 +687,20 @@ contract MockERC20 is ERC20 {
         vm.expectRevert(UpgradeableGreenBonds.OperationAlreadyExecuted.selector);
         greenBonds.emergencyRecovery(admin, recoveryAmount);
     }
+    
+    // Test access control
+    function testAccessControl() public {
+        // Test unauthorized access
+        vm.prank(investor1);
+        vm.expectRevert();
+        greenBonds.addTranche("Test", 1000, 100, 1, 100);
+        
+        vm.prank(investor1);
+        vm.expectRevert();
+        greenBonds.addVerifier(address(0x9));
+        
+        vm.prank(investor1);
+        vm.expectRevert();
+        greenBonds.pause();
+    }
+    
