@@ -721,3 +721,90 @@ contract MockERC20 is ERC20 {
         greenBonds.purchaseBonds(1);
     }
 
+    function testPausableWithSpecificErrors() public {
+        // Test pausable functionality with specific custom error checking
+        
+        // First, let's purchase a bond so we can test claim functionality
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        // Pause the contract
+        vm.prank(admin);
+        greenBonds.pause();
+        
+        // Test specific operations that should fail with EnforcedPause
+        
+        // Purchase bonds
+        vm.prank(investor1);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.purchaseBonds(1);
+        
+        // Claim coupon  
+        vm.prank(investor1);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.claimCoupon();
+        
+        // Add tranche
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.addTranche("Test Tranche", 1000, 100, 1, 100);
+        
+        // Add impact report
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "test_metric";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 100;
+        
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.addImpactReport(
+            "test_uri", 
+            "test_hash", 
+            "{}", 
+            metricNames, 
+            metricValues, 
+            7 days, 
+            1
+        );
+        
+        // Withdraw project funds
+        vm.prank(treasurer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.withdrawProjectFunds(treasurer, 1000, "test");
+        
+        // Update coupon period
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.updateCouponPeriod(45 days);
+        
+        // Unpause the contract
+        vm.prank(admin);
+        greenBonds.unpause();
+        
+        // Verify operations work after unpause
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1);
+        assertEq(greenBonds.balanceOf(investor1), 11); // 10 + 1
+        
+        vm.prank(issuer);
+        greenBonds.addTranche("Working Tranche", 2000, 200, 2, 500);
+        assertEq(greenBonds.trancheCount(), 1);
+    }
+    
+    // Test maturity event emission
+    function testMaturityEventEmission() public {
+        // Purchase some bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        // Fast forward to maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD + 1);
+        
+        vm.expectEmit(true, true, true, true);
+        emit BondMaturityReached(block.timestamp - 1);
+        
+        // Maturity event should be emitted on next interaction
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+    }
+    
