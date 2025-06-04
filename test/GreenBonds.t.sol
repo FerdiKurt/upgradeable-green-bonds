@@ -864,3 +864,34 @@ contract MockERC20 is ERC20 {
         assertTrue(greenBonds.lastCouponClaimDate(investor2) > 0);
     }
     
+    // Test error scenarios
+    function testComprehensiveErrorScenarios() public {     
+        // Test invalid tranche operations
+        vm.expectRevert(UpgradeableGreenBonds.TrancheDoesNotExist.selector);
+        greenBonds.getTrancheDetails(999);
+        
+        vm.expectRevert(UpgradeableGreenBonds.TrancheDoesNotExist.selector);
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(999, 1);
+        
+        // Test invalid report operations WITH proper authorization
+        vm.prank(verifier); // Use authorized account
+        vm.expectRevert(UpgradeableGreenBonds.ReportDoesNotExist.selector);
+        greenBonds.verifyImpactReport(999);
+        
+        // Test report view functions (no auth required)
+        vm.expectRevert(UpgradeableGreenBonds.ReportDoesNotExist.selector);
+        greenBonds.getImpactMetricValue(999, "test");
+        
+        vm.expectRevert(UpgradeableGreenBonds.ReportDoesNotExist.selector);
+        greenBonds.getImpactMetricNames(999);
+        
+        // Test invalid proposal operations
+        vm.expectRevert(UpgradeableGreenBonds.ProposalDoesNotExist.selector);
+        vm.prank(investor1);
+        greenBonds.castVote(999, true);
+        
+        vm.expectRevert(UpgradeableGreenBonds.ProposalDoesNotExist.selector);
+        vm.prank(investor1);
+        greenBonds.executeProposal(999);
+    }
