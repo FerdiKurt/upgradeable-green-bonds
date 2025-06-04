@@ -848,3 +848,19 @@ contract MockERC20 is ERC20 {
         assertTrue(interest > 0);
     }
     
+    // Test ERC20 transfer overrides
+    function testERC20TransferOverrides() public {
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(10);
+        
+        // Transfer to investor2
+        vm.prank(investor1);
+        greenBonds.transfer(investor2, 5);
+        
+        assertEq(greenBonds.balanceOf(investor1), 5);
+        assertEq(greenBonds.balanceOf(investor2), 5);
+        
+        // investor2 should have coupon claim date set
+        assertTrue(greenBonds.lastCouponClaimDate(investor2) > 0);
+    }
+    
