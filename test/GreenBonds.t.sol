@@ -819,3 +819,11 @@ contract MockERC20 is ERC20 {
         assertEq(emergency, 1000);
     }
     
+    // Test green certifications
+    function testAddGreenCertification() public {
+        vm.prank(issuer);
+        greenBonds.addGreenCertification("LEED Gold");
+        
+        assertEq(greenBonds.getGreenCertificationCount(), 1);
+    }
+    
