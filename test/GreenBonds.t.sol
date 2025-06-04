@@ -921,3 +921,21 @@ contract MockERC20 is ERC20 {
         greenBonds.updateAllocationPercentages(5000, 4000, 2000); // Sum > 100%
     }
     
+    // Test bulk operations with large purchase
+    function testGasOptimization() public {
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1000); // Large purchase
+        
+        // Fast forward and claim large coupon
+        vm.warp(block.timestamp + 365 days);
+        
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        // Test large redemption
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+    }
+    
