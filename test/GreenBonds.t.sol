@@ -832,3 +832,19 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.version(), "v1.0.0");
     }
     
+    // Test edge cases and boundary conditions
+    function testCalculateInterestEdgeCases() public {
+        // Purchase bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1);
+        
+        // Test immediately after purchase (should be 0)
+        uint256 interest = greenBonds.calculateClaimableCoupon(investor1);
+        assertEq(interest, 0);
+        
+        // Test after 1 second
+        vm.warp(block.timestamp + 1);
+        interest = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(interest > 0);
+    }
+    
