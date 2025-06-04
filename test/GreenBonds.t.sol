@@ -808,3 +808,14 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBonds();
     }
     
+    // Test allocation percentage updates
+    function testUpdateAllocationPercentages() public {
+        vm.prank(admin);
+        greenBonds.updateAllocationPercentages(5000, 4000, 1000); // 50%, 40%, 10%
+        
+        (uint256 principal, uint256 project, uint256 emergency) = greenBonds.getAllocationPercentages();
+        assertEq(principal, 5000);
+        assertEq(project, 4000);
+        assertEq(emergency, 1000);
+    }
+    
