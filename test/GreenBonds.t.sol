@@ -827,3 +827,8 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.getGreenCertificationCount(), 1);
     }
     
+    // Test version
+    function testVersion() public view {
+        assertEq(greenBonds.version(), "v1.0.0");
+    }
+    
