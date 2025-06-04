@@ -895,3 +895,29 @@ contract MockERC20 is ERC20 {
         vm.prank(investor1);
         greenBonds.executeProposal(999);
     }
+
+    function testInvalidParameterErrors() public {
+        // Invalid bond amounts
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidBondAmount.selector);
+        greenBonds.purchaseBonds(0);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InsufficientBondsAvailable.selector);
+        greenBonds.purchaseBonds(TOTAL_SUPPLY + 1);
+        
+        // Invalid tranche parameters
+        vm.prank(issuer);
+        vm.expectRevert(UpgradeableGreenBonds.EmptyString.selector);
+        greenBonds.addTranche("", 1000, 100, 1, 100); // Empty name
+        
+        vm.prank(issuer);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidValue.selector);
+        greenBonds.addTranche("Test", 0, 100, 1, 100); // Zero face value
+        
+        // Invalid allocation percentages
+        vm.prank(admin);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidValue.selector);
+        greenBonds.updateAllocationPercentages(5000, 4000, 2000); // Sum > 100%
+    }
+    
