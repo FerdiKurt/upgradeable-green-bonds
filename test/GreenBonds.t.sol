@@ -1366,3 +1366,30 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemTrancheBonds(1);
     }
     
+    // Test error recovery scenarios
+    function testErrorRecoveryScenarios() public {
+        // Test recovery after failed operations
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        // Try to claim coupon too early
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.NoCouponAvailable.selector);
+        greenBonds.claimCoupon();
+        
+        // Wait and try again - should work
+        vm.warp(block.timestamp + 30 days);
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        // Test redemption recovery
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.BondNotMatured.selector);
+        greenBonds.redeemBonds();
+        
+        // Wait until maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+    }
+    
