@@ -939,3 +939,32 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBonds();
     }
     
+    // Fuzz testing for critical functions
+    function testFuzzPurchaseBonds(uint256 amount) public {
+        amount = bound(amount, 1, TOTAL_SUPPLY);
+        
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(amount);
+        
+        assertEq(greenBonds.balanceOf(investor1), amount);
+        assertEq(greenBonds.availableSupply(), TOTAL_SUPPLY - amount);
+    }
+    
+    function testFuzzCouponCalculation(uint256 timeElapsed) public {
+        timeElapsed = bound(timeElapsed, 1, 365 days * 10); // Up to 10 years
+        
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        vm.warp(block.timestamp + timeElapsed);
+        
+        uint256 coupon = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(coupon > 0);
+        
+        // Coupon should be proportional to time elapsed
+        if (timeElapsed >= 365 days) {
+            // Should be at least the annual coupon for 100 bonds
+            uint256 expectedAnnualCoupon = 100 * FACE_VALUE * BASE_COUPON_RATE / 10000;
+            assertTrue(coupon >= expectedAnnualCoupon);
+        }
+    }
