@@ -1393,3 +1393,24 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBonds();
     }
     
+    // Test upgrade authorization
+    function testUpgradeAuthorization() public {
+        // Test that upgrade role exists and is properly set
+        assertTrue(greenBonds.hasRole(greenBonds.UPGRADER_ROLE(), upgrader));
+        assertFalse(greenBonds.hasRole(greenBonds.UPGRADER_ROLE(), investor1));
+        
+        // Test adding/removing upgrade role
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.UPGRADER_ROLE(), investor1);
+        assertTrue(greenBonds.hasRole(greenBonds.UPGRADER_ROLE(), investor1));
+        
+        vm.prank(admin);
+        greenBonds.revokeRole(greenBonds.UPGRADER_ROLE(), investor1);
+        assertFalse(greenBonds.hasRole(greenBonds.UPGRADER_ROLE(), investor1));
+        
+        // Test that state is preserved 
+        assertEq(greenBonds.bondName(), BOND_NAME);
+        assertEq(greenBonds.faceValue(), FACE_VALUE);
+        assertEq(greenBonds.version(), "v1.0.0");
+    }
+    
