@@ -1012,3 +1012,47 @@ contract MockERC20 is ERC20 {
         assertEq(principal + coupon + project + emergency, cost);
     }
     
+    // Test complete lifecycle
+    function testCompleteLifecycle() public {
+        // 1. Purchase bonds
+        uint256 bondAmount = 100;
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // 2. Add impact report
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "co2_reduction";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 1000;
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport(
+            "https://example.com/report",
+            "0x123",
+            "{}",
+            metricNames,
+            metricValues,
+            7 days,
+            1
+        );
+        
+        // 3. Verify report (increases coupon rate)
+        uint256 oldRate = greenBonds.couponRate();
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        assertTrue(greenBonds.couponRate() > oldRate);
+        
+        // 4. Claim coupon after some time
+        vm.warp(block.timestamp + 180 days);
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        // 5. Redeem at maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+        
+        // Investor should have no bonds left
+        assertEq(greenBonds.balanceOf(investor1), 0);
+    }
+    
