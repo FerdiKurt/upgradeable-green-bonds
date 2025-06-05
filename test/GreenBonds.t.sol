@@ -1464,3 +1464,77 @@ contract MockERC20 is ERC20 {
         vm.warp(baseTime + MATURITY_PERIOD + 1);
         assertTrue(block.timestamp >= greenBonds.maturityDate());
     }
+    
+    // Test emergency scenarios
+    function testEmergencyScenarios() public {
+        // Test emergency pause
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        vm.prank(admin);
+        greenBonds.pause();
+        
+        // Operations should fail when paused with EnforcedPause() error
+        vm.prank(investor1);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.claimCoupon();
+        
+        vm.prank(investor2);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.purchaseBonds(10);
+        
+        // Test other paused operations
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.addTranche("Test", 1000, 100, 1, 100);
+        
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.updateCouponPeriod(45 days);
+        
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "test_metric";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 100;
+        
+        vm.prank(issuer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.addImpactReport(
+            "test_uri", 
+            "test_hash", 
+            "{}", 
+            metricNames, 
+            metricValues, 
+            7 days, 
+            1
+        );
+        
+        vm.prank(treasurer);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        greenBonds.withdrawProjectFunds(treasurer, 1000, "test");
+        
+        // Emergency recovery should work even when paused (no whenNotPaused modifier)
+        paymentToken.transfer(address(greenBonds), 1000 * 10**18);
+        
+        vm.prank(admin);
+        greenBonds.emergencyRecovery(admin, 500 * 10**18);
+        
+        // Fast forward past timelock
+        vm.warp(block.timestamp + 3 days);
+        
+        vm.prank(admin);
+        greenBonds.emergencyRecovery(admin, 500 * 10**18);
+        
+        // Unpause and resume operations
+        vm.prank(admin);
+        greenBonds.unpause();
+        
+        // Operations should work after unpause
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        vm.prank(investor2);
+        greenBonds.purchaseBonds(5);
+        assertEq(greenBonds.balanceOf(investor2), 5);
+    }
+    
