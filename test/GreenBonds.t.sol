@@ -1311,3 +1311,58 @@ contract MockERC20 is ERC20 {
         greenBonds.castVote(proposalId4, true);
     }
     
+    // Test tranche lifecycle
+    function testTrancheLifecycle() public {
+        // Add multiple tranches
+        vm.prank(issuer);
+        greenBonds.addTranche("Senior", 1500 * 10**18, 300, 1, 1000);
+        
+        vm.prank(issuer);
+        greenBonds.addTranche("Subordinate", 800 * 10**18, 700, 2, 2000);
+        
+        // Purchase from different tranches
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(0, 50); // Senior
+        
+        vm.prank(investor2);
+        greenBonds.purchaseTrancheBonds(1, 100); // Subordinate
+        
+        // Test coupon calculations
+        vm.warp(block.timestamp + 365 days);
+        
+        uint256 seniorCoupon = greenBonds.calculateTrancheCoupon(0, investor1);
+        uint256 subCoupon = greenBonds.calculateTrancheCoupon(1, investor2);
+        
+        assertTrue(seniorCoupon > 0);
+        assertTrue(subCoupon > 0);
+        
+        // Subordinate should have higher coupon rate
+        assertTrue(subCoupon > seniorCoupon);
+        
+        // Claim coupons
+        vm.prank(investor1);
+        greenBonds.claimTrancheCoupon(0);
+        
+        vm.prank(investor2);
+        greenBonds.claimTrancheCoupon(1);
+        
+        // Transfer tranche bonds
+        vm.prank(investor1);
+        greenBonds.transferTrancheBonds(0, investor2, 25);
+        
+        assertEq(greenBonds.getTrancheHoldings(0, investor1), 25);
+        assertEq(greenBonds.getTrancheHoldings(0, investor2), 25);
+        
+        // Redeem at maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        
+        vm.prank(investor1);
+        greenBonds.redeemTrancheBonds(0);
+        
+        vm.prank(investor2);
+        greenBonds.redeemTrancheBonds(0);
+        
+        vm.prank(investor2);
+        greenBonds.redeemTrancheBonds(1);
+    }
+    
