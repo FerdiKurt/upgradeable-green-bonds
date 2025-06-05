@@ -1056,3 +1056,63 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.balanceOf(investor1), 0);
     }
     
+    // Test multi-investor scenarios
+    function testMultiInvestorScenario() public {
+        // Setup multiple investors with different investment amounts
+        address[5] memory investors = [
+            address(0x10), address(0x11), address(0x12), address(0x13), address(0x14)
+        ];
+        
+        uint256[5] memory amounts = [uint256(100), 200, 150, 300, 250];
+        
+        // Fund investors with sufficient tokens
+        for (uint i = 0; i < 5; i++) {
+            // Calculate required funding: bonds * face_value + buffer
+            uint256 requiredFunding = amounts[i] * FACE_VALUE * 2; // 2x buffer
+            
+            paymentToken.transfer(investors[i], requiredFunding);
+            vm.prank(investors[i]);
+            paymentToken.approve(address(greenBonds), type(uint256).max);
+        }
+        
+        // All investors purchase bonds
+        uint256 totalBonds = 0;
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(investors[i]);
+            greenBonds.purchaseBonds(amounts[i]);
+            
+            assertEq(greenBonds.balanceOf(investors[i]), amounts[i]);
+            totalBonds += amounts[i];
+        }
+        
+        // Verify total supply
+        assertEq(greenBonds.totalSupply(), totalBonds);
+        assertEq(greenBonds.availableSupply(), TOTAL_SUPPLY - totalBonds);
+        
+        // Fast forward and claim coupons
+        vm.warp(block.timestamp + 365 days);
+        
+        for (uint i = 0; i < 5; i++) {
+            uint256 balanceBefore = paymentToken.balanceOf(investors[i]);
+            
+            vm.prank(investors[i]);
+            greenBonds.claimCoupon();
+            
+            uint256 balanceAfter = paymentToken.balanceOf(investors[i]);
+            assertTrue(balanceAfter > balanceBefore); // Should receive coupon
+        }
+        
+        // Fast forward to maturity and redeem
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(investors[i]);
+            greenBonds.redeemBonds();
+            
+            assertEq(greenBonds.balanceOf(investors[i]), 0);
+        }
+        
+        // All bonds should be redeemed
+        assertEq(greenBonds.totalSupply(), 0);
+    }
+    
