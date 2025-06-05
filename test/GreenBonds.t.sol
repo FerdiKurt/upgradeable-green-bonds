@@ -1116,3 +1116,78 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.totalSupply(), 0);
     }
     
+    // Test governance with multiple participants
+    function testGovernanceWithMultipleParticipants() public {
+        // Test governance with multiple participants - ensure quorum is met
+        
+        address[3] memory voters = [address(0x20), address(0x21), address(0x22)];
+        
+        // Increase bond amounts to meet 30% quorum (3000+ votes needed)
+        // Total: 1200 + 1000 + 1000 = 3200 bonds (exceeds 3000 quorum)
+        uint256[3] memory bondAmounts = [uint256(1200), 1000, 1000];
+        
+        // Verify we have enough supply
+        uint256 totalBondsNeeded = bondAmounts[0] + bondAmounts[1] + bondAmounts[2];
+        uint256 availableSupply = greenBonds.availableSupply();
+        
+        require(totalBondsNeeded <= availableSupply, "Not enough bonds available");
+        require(totalBondsNeeded >= greenBonds.quorum(), "Won't meet quorum");
+        
+        // Fund voters adequately
+        for (uint i = 0; i < 3; i++) {
+            uint256 requiredFunding = bondAmounts[i] * FACE_VALUE;
+            uint256 fundingWithBuffer = requiredFunding + (requiredFunding / 2); // 1.5x
+            
+            paymentToken.transfer(voters[i], fundingWithBuffer);
+            vm.prank(voters[i]);
+            paymentToken.approve(address(greenBonds), type(uint256).max);
+        }
+        
+        // Purchase bonds to get voting power
+        for (uint i = 0; i < 3; i++) {
+            vm.prank(voters[i]);
+            greenBonds.purchaseBonds(bondAmounts[i]);
+            
+            assertEq(greenBonds.balanceOf(voters[i]), bondAmounts[i]);
+        }
+        
+        // Create proposal
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal("Test Multi-Voter Proposal", address(0), "");
+        
+        // Cast votes with different preferences
+        vm.prank(voters[0]); // 1200 votes FOR
+        greenBonds.castVote(proposalId, true);
+        
+        vm.prank(voters[1]); // 1000 votes AGAINST
+        greenBonds.castVote(proposalId, false);
+        
+        vm.prank(voters[2]); // 1000 votes FOR
+        greenBonds.castVote(proposalId, true);
+        
+        // Check vote tally
+        (,,,, uint256 forVotes, uint256 againstVotes,,,) = greenBonds.proposals(proposalId);
+        
+        // Verify vote counts
+        assertEq(forVotes, 2200); // 1200 + 1000
+        assertEq(againstVotes, 1000);
+        
+        // Verify quorum is met
+        uint256 totalVotes = forVotes + againstVotes;
+        uint256 quorum = greenBonds.quorum();
+        assertTrue(totalVotes >= quorum, "Should meet quorum requirement");
+        
+        // Proposal should pass (2200 > 1000)
+        assertTrue(forVotes > againstVotes, "Proposal should pass");
+        
+        // Execute after voting period
+        vm.warp(block.timestamp + 8 days);
+        
+        vm.prank(voters[0]);
+        greenBonds.executeProposal(proposalId);
+        
+        // Verify execution
+        (,,,,,,,, bool executed) = greenBonds.proposals(proposalId);
+        assertTrue(executed, "Proposal should be executed");
+    }
+
