@@ -1414,3 +1414,28 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.version(), "v1.0.0");
     }
     
+    // Test fund allocation edge cases
+    function testFundAllocationEdgeCases() public {
+        // Test with very small purchase
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1);
+        
+        (uint256 principal, uint256 coupon, uint256 project, uint256 emergency, uint256 total) = 
+            greenBonds.getTreasuryStatus();
+        
+        // All allocations should be non-zero
+        assertTrue(principal > 0);
+        assertTrue(coupon > 0);
+        assertTrue(project > 0);
+        assertTrue(emergency > 0);
+        assertTrue(total > 0);
+        
+        // Test allocation percentage updates
+        vm.prank(admin);
+        greenBonds.updateAllocationPercentages(6000, 3000, 1000); // 60%, 30%, 10%
+        
+        // New purchase should use new allocations
+        vm.prank(investor2);
+        greenBonds.purchaseBonds(1);
+    }
+    
