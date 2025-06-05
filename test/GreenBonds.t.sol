@@ -1439,3 +1439,28 @@ contract MockERC20 is ERC20 {
         greenBonds.purchaseBonds(1);
     }
     
+    // Test time-based operations
+    function testTimeBasedOperations() public {
+        uint256 baseTime = block.timestamp;
+        
+        // Purchase at different times
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(50);
+        
+        vm.warp(baseTime + 30 days);
+        vm.prank(investor2);
+        greenBonds.purchaseBonds(50);
+        
+        // Fast forward and check coupon calculations
+        vm.warp(baseTime + 365 days);
+        
+        uint256 coupon1 = greenBonds.calculateClaimableCoupon(investor1);
+        uint256 coupon2 = greenBonds.calculateClaimableCoupon(investor2);
+        
+        // investor1 should have more coupon (held bonds longer)
+        assertTrue(coupon1 > coupon2);
+        
+        // Test maturity detection
+        vm.warp(baseTime + MATURITY_PERIOD + 1);
+        assertTrue(block.timestamp >= greenBonds.maturityDate());
+    }
