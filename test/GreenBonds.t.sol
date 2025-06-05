@@ -968,3 +968,47 @@ contract MockERC20 is ERC20 {
             assertTrue(coupon >= expectedAnnualCoupon);
         }
     }
+    
+    // Test invariants
+    function testInvariantTotalSupply() public {
+        uint256 initialSupply = greenBonds.bondTotalSupply();
+        
+        // Purchase some bonds
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(500);
+        
+        vm.prank(investor2);
+        greenBonds.purchaseBonds(300);
+        
+        // Total supply should remain constant
+        assertEq(greenBonds.bondTotalSupply(), initialSupply);
+        
+        // Available supply should decrease
+        assertEq(greenBonds.availableSupply(), initialSupply - 800);
+        
+        // Outstanding bonds should equal purchased bonds
+        assertEq(greenBonds.totalSupply(), 800);
+    }
+    
+    function testInvariantTreasuryBalance() public {
+        uint256 purchaseAmount = 1000;
+        uint256 cost = purchaseAmount * FACE_VALUE;
+        
+        uint256 contractBalanceBefore = paymentToken.balanceOf(address(greenBonds));
+        
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(purchaseAmount);
+        
+        uint256 contractBalanceAfter = paymentToken.balanceOf(address(greenBonds));
+        
+        // Contract balance should increase by the cost
+        assertEq(contractBalanceAfter - contractBalanceBefore, cost);
+        
+        // Treasury components should sum to the cost
+        (uint256 principal, uint256 coupon, uint256 project, uint256 emergency, uint256 total) = 
+            greenBonds.getTreasuryStatus();
+        
+        assertEq(total, contractBalanceAfter);
+        assertEq(principal + coupon + project + emergency, cost);
+    }
+    
