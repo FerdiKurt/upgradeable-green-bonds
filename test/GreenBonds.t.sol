@@ -1191,3 +1191,123 @@ contract MockERC20 is ERC20 {
         assertTrue(executed, "Proposal should be executed");
     }
 
+    // Comprehensive governance test with proper quorum handling
+    function testGovernanceWithMultipleParticipantsComprehensive() public {
+        address[4] memory voters = [
+            address(0x20), address(0x21), address(0x22), address(0x23)
+        ];
+        
+        // Ensure we meet quorum: 1000 + 900 + 800 + 700 = 3400 > 3000
+        uint256[4] memory bondAmounts = [uint256(1000), 900, 800, 700];
+        
+        // Fund and setup voters
+        for (uint i = 0; i < 4; i++) {
+            uint256 funding = bondAmounts[i] * FACE_VALUE * 2;
+            paymentToken.transfer(voters[i], funding);
+            
+            vm.prank(voters[i]);
+            paymentToken.approve(address(greenBonds), type(uint256).max);
+            
+            vm.prank(voters[i]);
+            greenBonds.purchaseBonds(bondAmounts[i]);
+        }
+        
+        // Test 1: Proposal that passes
+        vm.prank(issuer);
+        uint256 proposalId1 = greenBonds.createProposal("Passing Proposal", address(0), "");
+        
+        // FOR: 1000 + 900 = 1900, AGAINST: 800 + 700 = 1500
+        vm.prank(voters[0]);
+        greenBonds.castVote(proposalId1, true);
+        
+        vm.prank(voters[1]);
+        greenBonds.castVote(proposalId1, true);
+        
+        vm.prank(voters[2]);
+        greenBonds.castVote(proposalId1, false);
+        
+        vm.prank(voters[3]);
+        greenBonds.castVote(proposalId1, false);
+        
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(voters[0]);
+        greenBonds.executeProposal(proposalId1);
+        
+        (,,,,,,,, bool executed1) = greenBonds.proposals(proposalId1);
+        assertTrue(executed1);
+        
+        // Test 2: Proposal that fails due to majority against
+        vm.prank(issuer);
+        uint256 proposalId2 = greenBonds.createProposal("Failing Proposal", address(0), "");
+        
+        // FOR: 700, AGAINST: 1000 + 900 + 800 = 2700
+        vm.prank(voters[0]);
+        greenBonds.castVote(proposalId2, false);
+        
+        vm.prank(voters[1]);
+        greenBonds.castVote(proposalId2, false);
+        
+        vm.prank(voters[2]);
+        greenBonds.castVote(proposalId2, false);
+        
+        vm.prank(voters[3]);
+        greenBonds.castVote(proposalId2, true);
+        
+        vm.warp(block.timestamp + 8 days);
+        
+        vm.prank(voters[0]);
+        vm.expectRevert(UpgradeableGreenBonds.ProposalRejected.selector);
+        greenBonds.executeProposal(proposalId2);
+        
+        // Test 3: Quorum failure with small voters
+        address smallVoter1 = address(0x30);
+        address smallVoter2 = address(0x31);
+        
+        uint256 smallAmount = 100; // Each gets 100 bonds = 200 total << 3000 quorum
+        
+        for (uint i = 0; i < 2; i++) {
+            address voter = i == 0 ? smallVoter1 : smallVoter2;
+            paymentToken.transfer(voter, smallAmount * FACE_VALUE * 2);
+            
+            vm.prank(voter);
+            paymentToken.approve(address(greenBonds), type(uint256).max);
+            
+            vm.prank(voter);
+            greenBonds.purchaseBonds(smallAmount);
+        }
+        
+        vm.prank(issuer);
+        uint256 proposalId3 = greenBonds.createProposal("Low Participation", address(0), "");
+        
+        // Only small voters vote (200 total votes << 3000 quorum)
+        vm.prank(smallVoter1);
+        greenBonds.castVote(proposalId3, true);
+        
+        vm.prank(smallVoter2);
+        greenBonds.castVote(proposalId3, true);
+        
+        vm.warp(block.timestamp + 8 days);
+        
+        vm.prank(smallVoter1);
+        vm.expectRevert(UpgradeableGreenBonds.QuorumNotReached.selector);
+        greenBonds.executeProposal(proposalId3);
+        
+        // Test 4: Voting restrictions
+        vm.prank(issuer);
+        uint256 proposalId4 = greenBonds.createProposal("Restriction Test", address(0), "");
+        
+        // Double voting
+        vm.prank(voters[0]);
+        greenBonds.castVote(proposalId4, true);
+        
+        vm.prank(voters[0]);
+        vm.expectRevert(UpgradeableGreenBonds.AlreadyVoted.selector);
+        greenBonds.castVote(proposalId4, false);
+        
+        // No voting power
+        address nonVoter = address(0x99);
+        vm.prank(nonVoter);
+        vm.expectRevert(UpgradeableGreenBonds.NoVotingPower.selector);
+        greenBonds.castVote(proposalId4, true);
+    }
+    
