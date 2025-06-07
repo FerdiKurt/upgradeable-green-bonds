@@ -1701,3 +1701,37 @@ contract MockERC20 is ERC20 {
         assertEq(emergency, 500);
     }
 
+    // Test voting power changes during voting period
+    function testGovernanceVotingPowerChanges() public {
+        vm.prank(issuer);
+        uint256 proposalId = greenBonds.createProposal("Test", address(0), "");
+        
+        // Initial voting power
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1000);
+        
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId, true);
+        
+        // Buy more bonds after voting (shouldn't affect current vote)
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(2000);
+        
+        // Check vote is recorded with original power
+        (,,,, uint256 forVotes, uint256 againstVotes,,,) = greenBonds.proposals(proposalId);
+        assertEq(forVotes, 1000); // Not 3000
+        assertEq(againstVotes, 0);
+        
+        // Transfer bonds to another voter
+        vm.prank(investor1);
+        greenBonds.transfer(investor2, 500);
+        
+        // investor2 can vote with transferred bonds
+        vm.prank(investor2);
+        greenBonds.castVote(proposalId, false);
+        
+        (,,,, forVotes, againstVotes,,,) = greenBonds.proposals(proposalId);
+        assertEq(forVotes, 1000);
+        assertEq(againstVotes, 500);
+    }
+
