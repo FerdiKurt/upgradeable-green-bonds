@@ -1625,3 +1625,27 @@ contract MockERC20 is ERC20 {
         assertTrue(actualWithdrawn <= 1000, "Cannot withdraw more than requested");
     }
 
+    // Test that different operations create different IDs
+    function testTimelockOperationIdGeneration() public {
+        // These should create different operation IDs
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(60 days);
+        
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(90 days); // Different parameter
+        
+        // Both should be scheduled (not executed)
+        assertEq(greenBonds.couponPeriod(), 30 days); // Original value
+        
+        // Execute both after timelock
+        vm.warp(block.timestamp + 3 days);
+        
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(60 days);
+        assertEq(greenBonds.couponPeriod(), 60 days);
+        
+        vm.prank(issuer);
+        greenBonds.updateCouponPeriod(90 days);
+        assertEq(greenBonds.couponPeriod(), 90 days);
+    }
+
