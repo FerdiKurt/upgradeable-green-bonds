@@ -1563,3 +1563,65 @@ contract MockERC20 is ERC20 {
         greenBonds.redeemBonds();
     }
 
+    // Test all timelock functions systematically
+    function testTimelockSystemComprehensive() public {
+        // Test updateGovernanceParams timelock
+        vm.prank(admin);
+        greenBonds.updateGovernanceParams(2000, 5 days);
+        
+        // Should remain unchanged (scheduled)
+        (uint256 quorum,,) = greenBonds.getGovernanceParams();
+        assertEq(quorum, 3000); // Original value
+        
+        // Fast forward and execute
+        vm.warp(block.timestamp + 3 days);
+        vm.prank(admin);
+        greenBonds.updateGovernanceParams(2000, 5 days);
+        
+        (quorum,,) = greenBonds.getGovernanceParams();
+        assertEq(quorum, 2000); // Updated value
+        
+        // Test issuerEmergencyWithdraw timelock
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        // Get initial balances before scheduling emergency withdrawal
+        uint256 issuerBalanceBefore = paymentToken.balanceOf(issuer);
+        (,,, uint256 emergencyReserveBefore,) = greenBonds.getTreasuryStatus();
+        
+        // Should not withdraw immediately (scheduled only)
+        vm.prank(issuer);
+        greenBonds.issuerEmergencyWithdraw(1000);
+        
+        // Verify funds were NOT withdrawn (operation only scheduled)
+        uint256 issuerBalanceAfterSchedule = paymentToken.balanceOf(issuer);
+        (,,, uint256 emergencyReserveAfterSchedule,) = greenBonds.getTreasuryStatus();
+        
+        // Assert balances unchanged (proves scheduling worked, execution didn't happen)
+        assertEq(issuerBalanceAfterSchedule, issuerBalanceBefore, "Issuer balance should be unchanged after scheduling");
+        assertEq(emergencyReserveAfterSchedule, emergencyReserveBefore, "Emergency reserve should be unchanged after scheduling");
+        
+        // Fast forward past timelock period
+        vm.warp(block.timestamp + 3 days);
+        
+        // Now execute the scheduled withdrawal
+        vm.prank(issuer);
+        greenBonds.issuerEmergencyWithdraw(1000);
+        
+        // Verify funds were actually withdrawn (execution worked)
+        uint256 issuerBalanceAfterExecution = paymentToken.balanceOf(issuer);
+        (,,, uint256 emergencyReserveAfterExecution,) = greenBonds.getTreasuryStatus();
+        
+        // Assert withdrawal actually happened
+        assertTrue(issuerBalanceAfterExecution > issuerBalanceBefore, "Issuer should receive tokens after execution");
+        assertTrue(emergencyReserveAfterExecution < emergencyReserveBefore, "Emergency reserve should decrease after execution");
+        
+        // Verify exact amounts (if withdrawal was successful)
+        uint256 actualWithdrawn = issuerBalanceAfterExecution - issuerBalanceBefore;
+        uint256 reserveDecrease = emergencyReserveBefore - emergencyReserveAfterExecution;
+        
+        // The withdrawn amount should match the reserve decrease (may be less than 1000 if insufficient funds)
+        assertEq(actualWithdrawn, reserveDecrease, "Withdrawn amount should match reserve decrease");
+        assertTrue(actualWithdrawn <= 1000, "Cannot withdraw more than requested");
+    }
+
