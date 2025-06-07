@@ -1649,3 +1649,55 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.couponPeriod(), 90 days);
     }
 
+    // Test actual execution of governance proposals that modify state
+    function testGovernanceProposalExecution() public {
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
+        
+        // Test 1: Proposal to add green certification
+        bytes memory callData1 = abi.encodeWithSelector(
+            greenBonds.addGreenCertification.selector,
+            "BREEAM Excellent"
+        );
+        
+        vm.prank(issuer);
+        uint256 proposalId1 = greenBonds.createProposal("Add BREEAM cert", address(greenBonds), callData1);
+        
+        // Vote and execute
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(3500);
+        
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId1, true);
+        
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(investor1);
+        greenBonds.executeProposal(proposalId1);
+        
+        assertEq(greenBonds.getGreenCertificationCount(), 1);
+        
+        // Test 2: Proposal to update allocation percentages
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.DEFAULT_ADMIN_ROLE(), address(greenBonds));
+        
+        bytes memory callData2 = abi.encodeWithSelector(
+            greenBonds.updateAllocationPercentages.selector,
+            4000, 5500, 500
+        );
+        
+        vm.prank(issuer);
+        uint256 proposalId2 = greenBonds.createProposal("Update allocations", address(greenBonds), callData2);
+        
+        vm.prank(investor1);
+        greenBonds.castVote(proposalId2, true);
+        
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(investor1);
+        greenBonds.executeProposal(proposalId2);
+        
+        (uint256 principal, uint256 project, uint256 emergency) = greenBonds.getAllocationPercentages();
+        assertEq(principal, 4000);
+        assertEq(project, 5500);
+        assertEq(emergency, 500);
+    }
+
