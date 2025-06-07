@@ -1538,3 +1538,28 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.balanceOf(investor2), 5);
     }
     
+    // Test boundary conditions
+    function testBoundaryConditions() public {
+        // Test at maximum supply
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(TOTAL_SUPPLY);
+        
+        assertEq(greenBonds.availableSupply(), 0);
+        
+        // No more bonds should be available
+        vm.prank(investor2);
+        vm.expectRevert(UpgradeableGreenBonds.InsufficientBondsAvailable.selector);
+        greenBonds.purchaseBonds(1);
+        
+        // Test at maturity boundary
+        vm.warp(greenBonds.maturityDate() - 1);
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.BondNotMatured.selector);
+        greenBonds.redeemBonds();
+        
+        // Exactly at maturity should work
+        vm.warp(greenBonds.maturityDate());
+        vm.prank(investor1);
+        greenBonds.redeemBonds();
+    }
+
