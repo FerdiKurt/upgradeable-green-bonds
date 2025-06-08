@@ -1769,3 +1769,32 @@ contract MockERC20 is ERC20 {
         greenBonds.transferTrancheBonds(0, investor1, 25);
         assertEq(greenBonds.getTrancheHoldings(0, investor1), 50);
     }
+
+    // Test add tranche and maturity redemption
+    function testTrancheMaturityAndRedemption() public {
+        // Add tranches
+        vm.prank(issuer);
+        greenBonds.addTranche("Senior", 1500 * 10**18, 400, 1, 1000);
+        
+        // Purchase tranche bonds
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(0, 100);
+        
+        // Test early redemption attempt
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.BondNotMatured.selector);
+        greenBonds.redeemTrancheBonds(0);
+        
+        // Test redemption at maturity
+        vm.warp(block.timestamp + MATURITY_PERIOD + 1);
+        
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        
+        vm.prank(investor1);
+        greenBonds.redeemTrancheBonds(0);
+        
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        assertTrue(balanceAfter > balanceBefore);
+        assertEq(greenBonds.getTrancheHoldings(0, investor1), 0);
+    }
+
