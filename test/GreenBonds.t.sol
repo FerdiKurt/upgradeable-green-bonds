@@ -1735,3 +1735,37 @@ contract MockERC20 is ERC20 {
         assertEq(againstVotes, 500);
     }
 
+    // Add multiple tranches with different characteristics
+    function testTrancheInteractionEdgeCases() public {
+        vm.prank(issuer);
+        greenBonds.addTranche("AAA Senior", 2000 * 10**18, 300, 1, 500);
+        
+        vm.prank(issuer);
+        greenBonds.addTranche("BBB Mezzanine", 1500 * 10**18, 600, 2, 800);
+        
+        vm.prank(issuer);
+        greenBonds.addTranche("CCC Junior", 1000 * 10**18, 1000, 3, 1200);
+        
+        // Test purchasing from non-existent tranche
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.TrancheDoesNotExist.selector);
+        greenBonds.purchaseTrancheBonds(10, 100);
+        
+        // Test transfers with zero amounts
+        vm.prank(investor1);
+        greenBonds.purchaseTrancheBonds(0, 50);
+        
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InvalidValue.selector);
+        greenBonds.transferTrancheBonds(0, investor2, 0);
+        
+        // Test transferring more than owned
+        vm.prank(investor1);
+        vm.expectRevert(UpgradeableGreenBonds.InsufficientBonds.selector);
+        greenBonds.transferTrancheBonds(0, investor2, 100);
+        
+        // Test self-transfer
+        vm.prank(investor1);
+        greenBonds.transferTrancheBonds(0, investor1, 25);
+        assertEq(greenBonds.getTrancheHoldings(0, investor1), 50);
+    }
