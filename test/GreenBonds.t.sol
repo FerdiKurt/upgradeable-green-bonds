@@ -1798,3 +1798,28 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.getTrancheHoldings(0, investor1), 0);
     }
 
+    // Test coupon calculation with very small amounts and time periods
+    function testCouponCalculationPrecision() public {
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1); // Single bond
+        
+        // Test 1 second coupon
+        vm.warp(block.timestamp + 1);
+        uint256 coupon1s = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(coupon1s > 0);
+        
+        // Test 1 minute coupon
+        vm.warp(block.timestamp + 59); // Total 60 seconds
+        uint256 coupon1m = greenBonds.calculateClaimableCoupon(investor1);
+        assertEq(coupon1m, coupon1s * 60);
+        
+        // Test leap year calculations (366 days)
+        vm.warp(block.timestamp + 366 days - 60);
+        uint256 couponLeapYear = greenBonds.calculateClaimableCoupon(investor1);
+        
+        // Should be slightly more than regular year
+        vm.warp(block.timestamp - 1 days);
+        uint256 couponRegularYear = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(couponLeapYear > couponRegularYear);
+    }
+
