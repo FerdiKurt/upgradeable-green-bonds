@@ -2025,3 +2025,98 @@ contract MockERC20 is ERC20 {
         assertEq(balanceAfter - balanceBefore, expectedPayout);
     }
 
+    // Test system under high volume of operations
+    function testHighVolumeOperations() public {
+        address[] memory investors = new address[](10);
+        
+        // Setup 10 investors
+        for (uint i = 0; i < 10; i++) {
+            investors[i] = address(uint160(0x100 + i));
+            paymentToken.transfer(investors[i], 1000 * FACE_VALUE);
+            vm.prank(investors[i]);
+            paymentToken.approve(address(greenBonds), type(uint256).max);
+        }
+        
+        // All investors purchase different amounts
+        for (uint i = 0; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.purchaseBonds(50 + i * 10); // 50, 60, 70, ... 140
+        }
+        
+        // Verify total supply tracking
+        uint256 expectedTotal = 0;
+        for (uint i = 0; i < 10; i++) {
+            expectedTotal += 50 + i * 10;
+        }
+        assertEq(greenBonds.totalSupply(), expectedTotal);
+        
+        // Add multiple tranches BEFORE any time advancement
+        vm.prank(issuer);
+        greenBonds.addTranche("T1", 1000 * 10**18, 400, 1, 500);
+        vm.prank(issuer);  
+        greenBonds.addTranche("T2", 1200 * 10**18, 600, 2, 400);
+        
+        // Investors purchase from different tranches (BEFORE maturity)
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(investors[i]);
+            greenBonds.purchaseTrancheBonds(0, 20);
+        }
+        
+        for (uint i = 5; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.purchaseTrancheBonds(1, 15);
+        }
+        
+        // Fast forward 180 days
+        vm.warp(block.timestamp + 180 days);
+        
+        // All claim coupons after 180 days
+        for (uint i = 0; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.claimCoupon();
+        }
+        
+        // Claim tranche coupons too
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(investors[i]);
+            greenBonds.claimTrancheCoupon(0);
+        }
+        
+        for (uint i = 5; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.claimTrancheCoupon(1);
+        }
+        
+        // Fast forward to maturity for redemptions
+        vm.warp(block.timestamp + MATURITY_PERIOD);
+        
+        // Redeem all standard bonds
+        for (uint i = 0; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.redeemBonds();
+        }
+        
+        // Redeem all tranche bonds
+        for (uint i = 0; i < 5; i++) {
+            vm.prank(investors[i]);
+            greenBonds.redeemTrancheBonds(0);
+        }
+        
+        for (uint i = 5; i < 10; i++) {
+            vm.prank(investors[i]);
+            greenBonds.redeemTrancheBonds(1);
+        }
+        
+        // Verify all bonds are redeemed
+        assertEq(greenBonds.totalSupply(), 0);
+        
+        // Verify tranche holdings are zero
+        for (uint i = 0; i < 10; i++) {
+            if (i < 5) {
+                assertEq(greenBonds.getTrancheHoldings(0, investors[i]), 0);
+            } else {
+                assertEq(greenBonds.getTrancheHoldings(1, investors[i]), 0);
+            }
+        }
+    }
+
