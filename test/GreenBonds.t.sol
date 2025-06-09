@@ -18,6 +18,7 @@ contract MockERC20 is ERC20 {
     }
 }
 
+contract UpgradeableGreenBondsTest is Test {
     UpgradeableGreenBonds public greenBonds;
     UpgradeableGreenBonds public implementation;
     MockERC20 public paymentToken;
@@ -2120,3 +2121,109 @@ contract MockERC20 is ERC20 {
         }
     }
 
+    // Test multiple governance proposals running concurrently
+    function testConcurrentGovernanceProposals() public {
+        vm.prank(admin);
+        greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
+
+        address voter1 = address(0x200);
+        address voter2 = address(0x201);
+        
+        // Fund the new voters
+        paymentToken.transfer(voter1, 5000 * FACE_VALUE);
+        paymentToken.transfer(voter2, 5000 * FACE_VALUE);
+        
+        vm.prank(voter1);
+        paymentToken.approve(address(greenBonds), type(uint256).max);
+        vm.prank(voter2);
+        paymentToken.approve(address(greenBonds), type(uint256).max);
+        
+        // Create multiple proposals
+        vm.prank(issuer);
+        uint256 proposal1 = greenBonds.createProposal("Proposal 1", address(0), "");
+        
+        vm.prank(issuer);
+        uint256 proposal2 = greenBonds.createProposal("Proposal 2", address(0), "");
+        
+        vm.prank(issuer);
+        uint256 proposal3 = greenBonds.createProposal("Proposal 3", address(0), "");
+        
+        // Setup voters 
+        vm.prank(voter1);
+        greenBonds.purchaseBonds(2000);  // Exactly 2000 voting power
+        vm.prank(voter2);
+        greenBonds.purchaseBonds(2000);  // Exactly 2000 voting power
+        
+        // Verify voting power
+        assertEq(greenBonds.balanceOf(voter1), 2000);
+        assertEq(greenBonds.balanceOf(voter2), 2000);
+        
+        // Vote on different proposals
+        // Proposal 1: Tie vote (should fail)
+        vm.prank(voter1);
+        greenBonds.castVote(proposal1, true);   // 2000 FOR
+        vm.prank(voter2);
+        greenBonds.castVote(proposal1, false);  // 2000 AGAINST
+        
+        // Proposal 2: voter2 wins (should pass)
+        vm.prank(voter1);
+        greenBonds.castVote(proposal2, false);  // 2000 AGAINST
+        vm.prank(voter2);
+        greenBonds.castVote(proposal2, true);   // 2000 FOR
+        
+        // Proposal 3: Both vote yes (should pass)
+        vm.prank(voter1);
+        greenBonds.castVote(proposal3, true);   // 2000 FOR
+        vm.prank(voter2);
+        greenBonds.castVote(proposal3, true);   // 2000 FOR
+        
+        // Verify vote tallies before execution
+        (,,,, uint256 forVotes1, uint256 againstVotes1,,,) = greenBonds.proposals(proposal1);
+        (,,,, uint256 forVotes2, uint256 againstVotes2,,,) = greenBonds.proposals(proposal2);
+        (,,,, uint256 forVotes3, uint256 againstVotes3,,,) = greenBonds.proposals(proposal3);
+        
+        // Proposal 1: Tie
+        assertEq(forVotes1, 2000);
+        assertEq(againstVotes1, 2000);
+        
+        // Proposal 2: Against wins
+        assertEq(forVotes2, 2000);
+        assertEq(againstVotes2, 2000);
+        
+        // Proposal 3: For wins decisively
+        assertEq(forVotes3, 4000);
+        assertEq(againstVotes3, 0);
+        
+        // Verify quorum is met for all
+        uint256 quorum = greenBonds.quorum();
+        assertTrue(forVotes1 + againstVotes1 >= quorum, "Proposal 1 should meet quorum");
+        assertTrue(forVotes2 + againstVotes2 >= quorum, "Proposal 2 should meet quorum");
+        assertTrue(forVotes3 + againstVotes3 >= quorum, "Proposal 3 should meet quorum");
+        
+        // Execute after voting period
+        vm.warp(block.timestamp + 8 days);
+        
+        // Proposal 1: Tie - should fail (forVotes <= againstVotes)
+        vm.prank(voter1);
+        vm.expectRevert(UpgradeableGreenBonds.ProposalRejected.selector);
+        greenBonds.executeProposal(proposal1);
+        
+        // Proposal 2: Tie - should also fail (forVotes <= againstVotes)
+        vm.prank(voter2);
+        vm.expectRevert(UpgradeableGreenBonds.ProposalRejected.selector);
+        greenBonds.executeProposal(proposal2);
+        
+        // Proposal 3: Clear majority - should pass
+        vm.prank(voter1);
+        greenBonds.executeProposal(proposal3);
+        
+        // Verify execution states
+        (,,,,,,,, bool executed1) = greenBonds.proposals(proposal1);
+        (,,,,,,,, bool executed2) = greenBonds.proposals(proposal2);
+        (,,,,,,,, bool executed3) = greenBonds.proposals(proposal3);
+        
+        assertFalse(executed1, "Proposal 1 should be rejected (tie)");
+        assertFalse(executed2, "Proposal 2 should be rejected (tie)");
+        assertTrue(executed3, "Proposal 3 should be executed (clear majority)");
+    }
+}
