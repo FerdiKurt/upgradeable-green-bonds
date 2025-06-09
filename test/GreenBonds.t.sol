@@ -1865,3 +1865,56 @@ contract MockERC20 is ERC20 {
         assertTrue(newPeriodCoupon > 0);
     }
 
+    // Test complete impact reporting workflow
+    function testImpactReportingWorkflow() public {
+        string[] memory metricNames = new string[](3);
+        metricNames[0] = "co2_reduction_tons";
+        metricNames[1] = "energy_generated_mwh";
+        metricNames[2] = "trees_planted";
+        
+        uint256[] memory metricValues = new uint256[](3);
+        metricValues[0] = 1500;
+        metricValues[1] = 2500;
+        metricValues[2] = 1000;
+        
+        // Add multiple verifiers
+        vm.prank(admin);
+        greenBonds.addVerifier(address(0x20));
+        vm.prank(admin);
+        greenBonds.addVerifier(address(0x21));
+        
+        // Add report requiring multiple verifications
+        vm.prank(issuer);
+        greenBonds.addImpactReport(
+            "https://reports.example.com/2024-q1",
+            "0xabcd1234",
+            '{"co2": 1500, "energy": 2500, "trees": 1000}',
+            metricNames,
+            metricValues,
+            14 days,
+            3 // Require 3 verifications
+        );
+        
+        // Partial verification
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        vm.prank(address(0x20));
+        greenBonds.verifyImpactReport(0);
+        
+        // Not finalized yet
+        uint256 rateBefore = greenBonds.couponRate();
+        
+        // Final verification
+        vm.prank(address(0x21));
+        greenBonds.verifyImpactReport(0);
+        
+        // Should be finalized and rate increased
+        uint256 rateAfter = greenBonds.couponRate();
+        assertTrue(rateAfter > rateBefore);
+        
+        // Verify all metrics are stored correctly
+        assertEq(greenBonds.getImpactMetricValue(0, "co2_reduction_tons"), 1500);
+        assertEq(greenBonds.getImpactMetricValue(0, "energy_generated_mwh"), 2500);
+        assertEq(greenBonds.getImpactMetricValue(0, "trees_planted"), 1000);
+    }
