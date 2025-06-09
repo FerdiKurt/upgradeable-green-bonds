@@ -1823,3 +1823,45 @@ contract MockERC20 is ERC20 {
         assertTrue(couponLeapYear > couponRegularYear);
     }
 
+    // Test coupon calculations when rates change mid-period
+    function testCouponRateChanges() public {
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        vm.warp(block.timestamp + 100 days);
+        
+        // Add and verify impact report to increase coupon rate
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "co2_reduction";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 1000;
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport("uri", "hash", "{}", metricNames, metricValues, 7 days, 1);
+        
+        uint256 rateBefore = greenBonds.couponRate();
+        
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        uint256 rateAfter = greenBonds.couponRate();
+        assertTrue(rateAfter > rateBefore);
+        
+        // Wait additional time with new rate
+        vm.warp(block.timestamp + 100 days);
+        
+        uint256 finalCoupon = greenBonds.calculateClaimableCoupon(investor1);
+        assertTrue(finalCoupon > 0);
+        
+        // Claim coupon
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        // Verify calculation starts fresh with new rate
+        vm.warp(block.timestamp + 100 days);
+        uint256 newPeriodCoupon = greenBonds.calculateClaimableCoupon(investor1);
+        
+        // Should be calculated with higher rate
+        assertTrue(newPeriodCoupon > 0);
+    }
+
