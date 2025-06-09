@@ -1958,3 +1958,37 @@ contract MockERC20 is ERC20 {
         assertEq(verifiers.length, 2);
     }
 
+    // Test treasury accounting under various scenarios
+    function testTreasuryIntegrity() public {
+        // Large purchase
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(1000);
+        
+        (, uint256 c1 ,,, uint256 t1) = greenBonds.getTreasuryStatus();
+        
+        // Large coupon claim
+        vm.warp(block.timestamp + 365 days);
+        vm.prank(investor1);
+        greenBonds.claimCoupon();
+        
+        (, uint256 c2, uint256 pr2, , uint256 t2) = greenBonds.getTreasuryStatus();
+        
+        // Coupon reserve should decrease
+        assertTrue(c2 < c1);
+        assertTrue(t2 < t1);
+        
+        // Project fund withdrawal
+        uint256 withdrawAmount = pr2 / 3;
+        vm.prank(treasurer);
+        greenBonds.withdrawProjectFunds(treasurer, withdrawAmount, "Equipment purchase");
+        
+        (uint256 p3, uint256 c3, uint256 pr3, uint256 e3, uint256 t3) = greenBonds.getTreasuryStatus();
+        
+        // Project funds should decrease
+        assertEq(pr3, pr2 - withdrawAmount);
+        assertEq(t3, t2 - withdrawAmount);
+        
+        // Verify total integrity
+        assertEq(p3 + c3 + pr3 + e3, t3);
+    }
+
