@@ -1918,3 +1918,43 @@ contract MockERC20 is ERC20 {
         assertEq(greenBonds.getImpactMetricValue(0, "energy_generated_mwh"), 2500);
         assertEq(greenBonds.getImpactMetricValue(0, "trees_planted"), 1000);
     }
+
+    // Test challenging and recovering from challenged reports
+    function testImpactReportChallengingAndRecovery() public {
+        string[] memory metricNames = new string[](1);
+        metricNames[0] = "co2_reduction";
+        uint256[] memory metricValues = new uint256[](1);
+        metricValues[0] = 1000;
+        
+        vm.prank(admin);
+        greenBonds.addVerifier(address(0x30));
+        vm.prank(admin);
+        greenBonds.addVerifier(address(0x31));
+        
+        vm.prank(issuer);
+        greenBonds.addImpactReport("uri", "hash", "{}", metricNames, metricValues, 7 days, 2);
+        
+        // First verification
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        // Challenge before second verification
+        vm.prank(address(0x30));
+        greenBonds.challengeImpactReport(0, "Questionable measurements");
+        
+        // Verification should be reset
+        address[] memory verifiers = greenBonds.getReportVerifiers(0);
+        assertEq(verifiers.length, 0);
+        
+        // Re-verify after challenge
+        vm.prank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        vm.prank(address(0x31));
+        greenBonds.verifyImpactReport(0);
+        
+        // Should now be finalized
+        verifiers = greenBonds.getReportVerifiers(0);
+        assertEq(verifiers.length, 2);
+    }
+
