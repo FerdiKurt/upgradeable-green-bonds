@@ -1992,3 +1992,36 @@ contract MockERC20 is ERC20 {
         assertEq(p3 + c3 + pr3 + e3, t3);
     }
 
+    // Test various early redemption scenarios
+    function testEarlyRedemptionScenarios() public {
+        vm.prank(issuer);
+        greenBonds.setEarlyRedemptionParams(true, 500); // 5% penalty
+        
+        // Test partial early redemption
+        vm.prank(investor1);
+        greenBonds.purchaseBonds(100);
+        
+        vm.prank(investor1);
+        greenBonds.redeemBondsEarly(50);
+        
+        assertEq(greenBonds.balanceOf(investor1), 50);
+        
+        // Test penalty rate changes
+        vm.prank(issuer);
+        greenBonds.setEarlyRedemptionParams(true, 300); // Reduce to 3%
+        
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        
+        vm.prank(investor1);
+        greenBonds.redeemBondsEarly(50); // Remaining bonds
+        
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        
+        // Should receive more due to lower penalty
+        uint256 expectedValue = 50 * FACE_VALUE;
+        uint256 expectedPenalty = expectedValue * 300 / 10000;
+        uint256 expectedPayout = expectedValue - expectedPenalty;
+        
+        assertEq(balanceAfter - balanceBefore, expectedPayout);
+    }
+
