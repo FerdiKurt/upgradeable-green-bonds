@@ -290,3 +290,70 @@ forge test --match-test "*Impact*"
 forge test --match-test "testFuzz*"
 ```
 
+## 🗳️ Governance
+
+The contract includes a comprehensive governance system with the following features:
+
+### Proposal Lifecycle
+1. **Creation**: ISSUER_ROLE can create proposals
+2. **Voting**: Token holders vote proportional to holdings
+3. **Execution**: Successful proposals execute automatically
+
+### Voting Parameters
+- **Quorum**: 30% of total bond supply
+- **Voting Period**: 7 days (configurable)
+- **Execution**: Simple majority of participating votes
+
+### Timelock Protection
+Critical operations require a 2-day timelock:
+- Parameter updates
+- Emergency withdrawals
+- Governance configuration changes
+
+### Example Governance Flow
+```solidity
+// 1. Create proposal
+uint256 proposalId = greenBonds.createProposal(
+    "Update coupon period to 60 days",
+    address(greenBonds),
+    abi.encodeWithSelector(greenBonds.updateCouponPeriod.selector, 60 days)
+);
+
+// 2. Vote (requires bond holdings)
+greenBonds.castVote(proposalId, true);
+
+// 3. Execute after voting period
+greenBonds.executeProposal(proposalId);
+```
+
+## 📊 Impact Reporting
+
+### Verification Process
+1. **Submission**: Issuer submits impact report with metrics
+2. **Challenge Period**: Open window for challenges
+3. **Verification**: Multiple verifiers validate metrics
+4. **Finalization**: Report becomes immutable after consensus
+5. **Rate Adjustment**: Successful reports increase coupon rates
+
+### Metrics Structure
+```solidity
+struct ImpactReport {
+    string reportURI;              // IPFS or web link
+    string reportHash;             // Content verification
+    uint256 timestamp;             // Submission time
+    string impactMetricsJson;      // Detailed metrics
+    uint256 challengePeriodEnd;    // Challenge deadline
+    uint256 verificationCount;     // Current verifications
+    uint256 requiredVerifications; // Threshold for finalization
+    bool finalized;                // Immutable state
+    mapping(address => bool) hasVerified; // Verifier tracking
+    mapping(string => uint256) quantitativeMetrics; // Structured data
+}
+```
+
+### Challenge Mechanism
+- Any verifier can challenge questionable reports
+- Challenges reset verification progress
+- Extended review period for challenged reports
+- Transparent challenge history
+
