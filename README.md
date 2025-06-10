@@ -236,3 +236,57 @@ greenBonds.verifyImpactReport(reportId);
 | `issuerEmergencyWithdraw(uint256)` | Emergency fund withdrawal | ISSUER_ROLE |
 | `emergencyRecovery(address, uint256)` | Emergency token recovery | DEFAULT_ADMIN_ROLE |
 
+## 🔒 Security Features
+
+### Access Control
+- Role-based permissions with OpenZeppelin's AccessControl
+- Timelock protection for critical operations (2-day delay)
+- Multi-signature support through role distribution
+
+### Economic Security
+- Reentrancy protection on all state-changing functions
+- SafeERC20 for secure token transfers
+- Overflow protection with Solidity 0.8+
+
+### Operational Security
+- Pausable functionality for emergency stops
+- Upgrade authorization controls
+- Input validation and custom error messages
+
+### Audit Considerations
+- Comprehensive test coverage (>95%)
+- Formal verification friendly design
+- Clear separation of concerns
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
+forge test
+```
+
+### Test Coverage
+```bash
+forge coverage
+```
+
+### Gas Reports
+```bash
+forge test --gas-report
+```
+
+### Specific Test Categories
+```bash
+# Core functionality
+forge test --match-contract UpgradeableGreenBondsTest --match-test "testPurchase*"
+
+# Governance tests
+forge test --match-test "*Governance*"
+
+# Impact reporting tests
+forge test --match-test "*Impact*"
+
+# Fuzz testing
+forge test --match-test "testFuzz*"
+```
+
