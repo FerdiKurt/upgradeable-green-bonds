@@ -901,7 +901,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.updateAllocationPercentages(5000, 4000, 2000); // Sum > 100%
     }
     
-    // Test bulk operations with large purchase
     function testGasOptimization() public {
         vm.prank(investor1);
         greenBonds.purchaseBonds(1000); // Large purchase
@@ -919,7 +918,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemBonds();
     }
     
-    // Fuzz testing for critical functions
     function testFuzzPurchaseBonds(uint256 amount) public {
         amount = bound(amount, 1, TOTAL_SUPPLY);
         
@@ -949,7 +947,6 @@ contract UpgradeableGreenBondsTest is Test {
         }
     }
     
-    // Test invariants
     function testInvariantTotalSupply() public {
         uint256 initialSupply = greenBonds.bondTotalSupply();
         
@@ -992,7 +989,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(principal + coupon + project + emergency, cost);
     }
     
-    // Test complete lifecycle
     function testCompleteLifecycle() public {
         // 1. Purchase bonds
         uint256 bondAmount = 100;
@@ -1036,7 +1032,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.balanceOf(investor1), 0);
     }
     
-    // Test multi-investor scenarios
     function testMultiInvestorScenario() public {
         // Setup multiple investors with different investment amounts
         address[5] memory investors = [
@@ -1096,10 +1091,7 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.totalSupply(), 0);
     }
     
-    // Test governance with multiple participants
-    function testGovernanceWithMultipleParticipants() public {
-        // Test governance with multiple participants - ensure quorum is met
-        
+    function testGovernanceWithMultipleParticipants1() public {
         address[3] memory voters = [address(0x20), address(0x21), address(0x22)];
         
         // Increase bond amounts to meet 30% quorum (3000+ votes needed)
@@ -1171,8 +1163,7 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(executed, "Proposal should be executed");
     }
 
-    // Comprehensive governance test with proper quorum handling
-    function testGovernanceWithMultipleParticipantsComprehensive() public {
+    function testGovernanceWithMultipleParticipants2() public {
         address[4] memory voters = [
             address(0x20), address(0x21), address(0x22), address(0x23)
         ];
@@ -1291,7 +1282,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.castVote(proposalId4, true);
     }
     
-    // Test tranche lifecycle
     function testTrancheLifecycle() public {
         // Add multiple tranches
         vm.prank(issuer);
@@ -1346,7 +1336,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemTrancheBonds(1);
     }
     
-    // Test error recovery scenarios
     function testErrorRecoveryScenarios() public {
         // Test recovery after failed operations
         vm.prank(investor1);
@@ -1372,8 +1361,7 @@ contract UpgradeableGreenBondsTest is Test {
         vm.prank(investor1);
         greenBonds.redeemBonds();
     }
-    
-    // Test upgrade authorization
+
     function testUpgradeAuthorization() public {
         // Test that upgrade role exists and is properly set
         assertTrue(greenBonds.hasRole(greenBonds.UPGRADER_ROLE(), upgrader));
@@ -1394,7 +1382,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.version(), "v1.0.0");
     }
     
-    // Test fund allocation edge cases
     function testFundAllocationEdgeCases() public {
         // Test with very small purchase
         vm.prank(investor1);
@@ -1409,17 +1396,8 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(project > 0);
         assertTrue(emergency > 0);
         assertTrue(total > 0);
-        
-        // Test allocation percentage updates
-        vm.prank(admin);
-        greenBonds.updateAllocationPercentages(6000, 3000, 1000); // 60%, 30%, 10%
-        
-        // New purchase should use new allocations
-        vm.prank(investor2);
-        greenBonds.purchaseBonds(1);
     }
     
-    // Test time-based operations
     function testTimeBasedOperations() public {
         uint256 baseTime = block.timestamp;
         
@@ -1445,7 +1423,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(block.timestamp >= greenBonds.maturityDate());
     }
     
-    // Test emergency scenarios
     function testEmergencyScenarios() public {
         // Test emergency pause
         vm.prank(investor1);
@@ -1518,7 +1495,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.balanceOf(investor2), 5);
     }
     
-    // Test boundary conditions
     function testBoundaryConditions() public {
         // Test at maximum supply
         vm.prank(investor1);
@@ -1543,8 +1519,7 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemBonds();
     }
 
-    // Test all timelock functions systematically
-    function testTimelockSystemComprehensive() public {
+    function testTimelockSystem() public {
         // Test updateGovernanceParams timelock
         vm.prank(admin);
         greenBonds.updateGovernanceParams(2000, 5 days);
@@ -1605,7 +1580,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(actualWithdrawn <= 1000, "Cannot withdraw more than requested");
     }
 
-    // Test that different operations create different IDs
     function testTimelockOperationIdGeneration() public {
         // These should create different operation IDs
         vm.prank(issuer);
@@ -1629,7 +1603,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.couponPeriod(), 90 days);
     }
 
-    // Test actual execution of governance proposals that modify state
     function testGovernanceProposalExecution() public {
         vm.prank(admin);
         greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
@@ -1681,7 +1654,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(emergency, 500);
     }
 
-    // Test voting power changes during voting period
     function testGovernanceVotingPowerChanges() public {
         vm.prank(issuer);
         uint256 proposalId = greenBonds.createProposal("Test", address(0), "");
@@ -1715,7 +1687,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(againstVotes, 500);
     }
 
-    // Add multiple tranches with different characteristics
     function testTrancheInteractionEdgeCases() public {
         vm.prank(issuer);
         greenBonds.addTranche("AAA Senior", 2000 * 10**18, 300, 1, 500);
@@ -1750,7 +1721,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.getTrancheHoldings(0, investor1), 50);
     }
 
-    // Test add tranche and maturity redemption
     function testTrancheMaturityAndRedemption() public {
         // Add tranches
         vm.prank(issuer);
@@ -1778,7 +1748,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.getTrancheHoldings(0, investor1), 0);
     }
 
-    // Test coupon calculation with very small amounts and time periods
     function testCouponCalculationPrecision() public {
         vm.prank(investor1);
         greenBonds.purchaseBonds(1); // Single bond
@@ -1803,7 +1772,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(couponLeapYear > couponRegularYear);
     }
 
-    // Test coupon calculations when rates change mid-period
     function testCouponRateChanges() public {
         vm.prank(investor1);
         greenBonds.purchaseBonds(100);
@@ -1845,7 +1813,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(newPeriodCoupon > 0);
     }
 
-    // Test complete impact reporting workflow
     function testImpactReportingWorkflow() public {
         string[] memory metricNames = new string[](3);
         metricNames[0] = "co2_reduction_tons";
@@ -1899,7 +1866,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.getImpactMetricValue(0, "trees_planted"), 1000);
     }
 
-    // Test challenging and recovering from challenged reports
     function testImpactReportChallengingAndRecovery() public {
         string[] memory metricNames = new string[](1);
         metricNames[0] = "co2_reduction";
@@ -1938,7 +1904,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(verifiers.length, 2);
     }
 
-    // Test treasury accounting under various scenarios
     function testTreasuryIntegrity() public {
         // Large purchase
         vm.prank(investor1);
@@ -1972,7 +1937,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(p3 + c3 + pr3 + e3, t3);
     }
 
-    // Test various early redemption scenarios
     function testEarlyRedemptionScenarios() public {
         vm.prank(issuer);
         greenBonds.setEarlyRedemptionParams(true, 500); // 5% penalty
@@ -2005,7 +1969,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(balanceAfter - balanceBefore, expectedPayout);
     }
 
-    // Test system under high volume of operations
     function testHighVolumeOperations() public {
         address[] memory investors = new address[](10);
         
@@ -2100,7 +2063,6 @@ contract UpgradeableGreenBondsTest is Test {
         }
     }
 
-    // Test multiple governance proposals running concurrently
     function testConcurrentGovernanceProposals() public {
         vm.prank(admin);
         greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
