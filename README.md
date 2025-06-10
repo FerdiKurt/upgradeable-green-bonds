@@ -129,18 +129,110 @@ UpgradeableGreenBonds
 forge script script/Deploy.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --verify --slow
 ```
 
+## 💼 Usage
+
+### Basic Bond Operations
+
+#### Purchase Bonds
+```solidity
+// Approve payment tokens first
+paymentToken.approve(greenBondsAddress, amount);
+
+// Purchase bonds
+greenBonds.purchaseBonds(bondAmount);
 ```
 
-### Cast
+#### Claim Coupons
+```solidity
+// Calculate claimable amount
+uint256 claimable = greenBonds.calculateClaimableCoupon(investor);
 
-```shell
-$ cast <subcommand>
+// Claim coupon payment
+greenBonds.claimCoupon();
 ```
 
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+#### Redeem at Maturity
+```solidity
+// Redeem bonds for principal + final coupon
+greenBonds.redeemBonds();
 ```
+
+### Tranche Operations
+
+#### Purchase Tranche Bonds
+```solidity
+// Purchase from specific tranche
+greenBonds.purchaseTrancheBonds(trancheId, bondAmount);
+
+// Transfer tranche bonds
+greenBonds.transferTrancheBonds(trancheId, recipient, amount);
+```
+
+### Administrative Functions
+
+#### Add Impact Report
+```solidity
+string[] memory metricNames = ["co2_reduction", "energy_generated"];
+uint256[] memory metricValues = [1000, 5000];
+
+greenBonds.addImpactReport(
+    "https://example.com/report",
+    "report_hash",
+    "detailed_metrics_json",
+    metricNames,
+    metricValues,
+    7 days,  // challenge period
+    2        // required verifications
+);
+```
+
+#### Verify Impact Report
+```solidity
+greenBonds.verifyImpactReport(reportId);
+```
+
+## 🔧 Contract Functions
+
+### Core Bond Functions
+
+| Function | Description | Access |
+|----------|-------------|---------|
+| `purchaseBonds(uint256)` | Purchase bonds with payment tokens | Public |
+| `claimCoupon()` | Claim accumulated coupon payments | Public |
+| `redeemBonds()` | Redeem bonds at maturity | Public |
+| `redeemBondsEarly(uint256)` | Early redemption with penalty | Public |
+| `calculateClaimableCoupon(address)` | View claimable coupon amount | View |
+
+### Tranche Functions
+
+| Function | Description | Access |
+|----------|-------------|---------|
+| `addTranche(...)` | Create new bond tranche | ISSUER_ROLE |
+| `purchaseTrancheBonds(uint256, uint256)` | Purchase from specific tranche | Public |
+| `transferTrancheBonds(uint256, address, uint256)` | Transfer tranche bonds | Public |
+| `redeemTrancheBonds(uint256)` | Redeem tranche bonds | Public |
+
+### Impact Reporting
+
+| Function | Description | Access |
+|----------|-------------|---------|
+| `addImpactReport(...)` | Add new impact report | ISSUER_ROLE |
+| `verifyImpactReport(uint256)` | Verify impact report | VERIFIER_ROLE |
+| `challengeImpactReport(uint256, string)` | Challenge report validity | VERIFIER_ROLE |
+
+### Governance
+
+| Function | Description | Access |
+|----------|-------------|---------|
+| `createProposal(...)` | Create governance proposal | ISSUER_ROLE |
+| `castVote(uint256, bool)` | Vote on proposal | Public |
+| `executeProposal(uint256)` | Execute passed proposal | Public |
+
+### Treasury Management
+
+| Function | Description | Access |
+|----------|-------------|---------|
+| `withdrawProjectFunds(...)` | Withdraw project funding | TREASURY_ROLE |
+| `issuerEmergencyWithdraw(uint256)` | Emergency fund withdrawal | ISSUER_ROLE |
+| `emergencyRecovery(address, uint256)` | Emergency token recovery | DEFAULT_ADMIN_ROLE |
+
