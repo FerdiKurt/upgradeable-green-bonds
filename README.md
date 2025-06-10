@@ -17,17 +17,51 @@ The Upgradeable Green Bonds contract enables organizations to issue tokenized gr
 - **Early Redemption**: Optional early bond redemption with configurable penalties
 - **reasury Management**: Automated fund allocation and transparent project funding
 
-### Build
+## 📋 Table of Contents
 
-```shell
-$ forge build
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Deployment](#deployment)
+- [Usage](#usage)
+- [Contract Functions](#contract-functions)
+- [Security Features](#security-features)
+- [Testing](#testing)
+- [Governance](#governance)
+- [Impact Reporting](#impact-reporting)
+- [Contributing](#contributing)
+- [License](#license)
+
+## 🏗️ Architecture
+
+### Core Components
+
+1. **Bond Management**: ERC20-based bond tokens with face value and maturity
+2. **Treasury System**: Multi-reserve fund management (principal, coupon, project, emergency)
+3. **Tranche System**: Multiple bond classes with different seniority levels
+4. **Impact Verification**: Multi-verifier system for environmental impact validation
+5. **Governance Module**: On-chain voting with timelock protection
+6. **Upgradeability**: UUPS proxy pattern for future improvements
+
+### Contract Hierarchy
+
+```
+UpgradeableGreenBonds
+├── Initializable (OpenZeppelin)
+├── AccessControlUpgradeable (OpenZeppelin)
+├── ReentrancyGuardUpgradeable (OpenZeppelin)
+├── PausableUpgradeable (OpenZeppelin)
+├── ERC20Upgradeable (OpenZeppelin)
+└── UUPSUpgradeable (OpenZeppelin)
 ```
 
-### Test
+### Roles
 
-```shell
-$ forge test
-```
+- **DEFAULT_ADMIN_ROLE**: Contract administration and role management
+- **ISSUER_ROLE**: Bond issuance and parameter updates
+- **VERIFIER_ROLE**: Impact report verification
+- **TREASURY_ROLE**: Fund management and withdrawals
+- **UPGRADER_ROLE**: Contract upgrade authorization
+
 
 ### Format
 
