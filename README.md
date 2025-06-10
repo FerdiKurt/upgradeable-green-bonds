@@ -62,29 +62,73 @@ UpgradeableGreenBonds
 - **TREASURY_ROLE**: Fund management and withdrawals
 - **UPGRADER_ROLE**: Contract upgrade authorization
 
+## 🚀 Installation
 
-### Format
+### Prerequisites
 
-```shell
-$ forge fmt
+- [Foundry](https://getfoundry.sh/) for development and testing
+- [Git](https://git-scm.com/) for version control
+- [Node.js](https://nodejs.org/) (optional, for additional tooling)
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/green-bonds-contract.git
+   cd green-bonds-contract
+   ```
+
+2. **Install dependencies**
+   ```bash
+   forge install
+   ```
+
+3. **Build the contract**
+   ```bash
+   forge build
+   ```
+
+4. **Run tests**
+   ```bash
+   forge test
+   ```
+
+## 📦 Deployment
+
+### Local Development
+
+1. **Start local blockchain**
+   ```bash
+   anvil
+   ```
+
+2. **Deploy to local network**
+   ```bash
+   forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast
+   ```
+
+### Testnet Deployment
+
+1. **Set environment variables**
+   ```bash
+   export PRIVATE_KEY=your_private_key
+   export RPC_URL=your_testnet_rpc_url
+   export ETHERSCAN_API_KEY=your_etherscan_api_key
+   ```
+
+2. **Deploy and verify**
+   ```bash
+   forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast --verify
+   ```
+
+### Mainnet Deployment
+
+⚠️ **Important**: Thoroughly test on testnets before mainnet deployment.
+
+```bash
+forge script script/Deploy.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --verify --slow
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
 ### Cast
