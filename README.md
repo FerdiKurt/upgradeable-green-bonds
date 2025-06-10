@@ -1,19 +1,21 @@
-## Foundry
+# Upgradeable Green Bonds Smart Contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+An upgradeable smart contract system for issuing and managing green bonds to support climate and environmental projects. Built with OpenZeppelin's upgradeable contracts pattern and featuring DeFi functionality including tranches, governance, and impact reporting.
 
-Foundry consists of:
+## 🌱 Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+The Upgradeable Green Bonds contract enables organizations to issue tokenized green bonds that fund environmental projects while providing transparent impact reporting and dynamic interest rates based on environmental performance.
 
-## Documentation
+### Key Features
 
-https://book.getfoundry.sh/
-
-## Usage
+- **Upgradeable Architecture**: Built with OpenZeppelin's UUPS proxy pattern
+- **Dynamic Coupon Rates**: Interest rates that increase based on verified environmental impact
+- **Multi-Tranche Support**: Different risk/reward profiles for various investor types
+- **On-Chain Governance**: Decentralized decision-making with timelock protection
+- **Impact Reporting**: Verified environmental metrics with challenge mechanisms
+- **Security**: Role-based access control, reentrancy protection, and pausable functionality
+- **Early Redemption**: Optional early bond redemption with configurable penalties
+- **reasury Management**: Automated fund allocation and transparent project funding
 
 ### Build
 
