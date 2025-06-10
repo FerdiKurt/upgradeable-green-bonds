@@ -7,7 +7,7 @@ import "../src/GreenBonds.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-// Mock ERC20 token for testing
+
 contract MockERC20 is ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
         _mint(msg.sender, 100000000 * 10**18); // Mint 100M tokens
@@ -108,7 +108,6 @@ contract UpgradeableGreenBondsTest is Test {
         paymentToken.approve(address(greenBonds), type(uint256).max);
     }
     
-    // Test initialization
     function testInitialization() public view {
         assertEq(greenBonds.bondName(), BOND_NAME);
         assertEq(greenBonds.bondSymbol(), BOND_SYMBOL);
@@ -124,7 +123,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.impactMetrics(), IMPACT_METRICS);
     }
     
-    // Test bond purchase
     function testPurchaseBonds() public {
         uint256 bondAmount = 10;
         uint256 cost = bondAmount * FACE_VALUE;
@@ -145,7 +143,7 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(project > 0);
         assertTrue(emergency > 0);
     }
-    
+
     function testPurchaseBondsFailures() public {
         // Test zero amount
         vm.prank(investor1);
@@ -164,7 +162,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.purchaseBonds(1);
     }
     
-    // Test coupon claiming
     function testClaimCoupon() public {
         uint256 bondAmount = 10;
         
@@ -205,7 +202,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.claimCoupon();
     }
     
-    // Test bond redemption
     function testRedeemBonds() public {
         uint256 bondAmount = 10;
         
@@ -245,7 +241,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemBonds();
     }
     
-    // Test early redemption
     function testEarlyRedemption() public {
         uint256 bondAmount = 10;
         
@@ -292,7 +287,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemBondsEarly(20); // More than owned
     }
     
-    // Test tranches
     function testAddTranche() public {
         string memory trancheName = "Senior Tranche";
         uint256 trancheFaceValue = 2000 * 10**18;
@@ -349,7 +343,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.getTrancheHoldings(0, investor2), 5);
     }
     
-    // Test impact reports
     function testAddImpactReport() public {
         string memory reportURI = "https://example.com/report1";
         string memory reportHash = "0x123456789abcdef";
@@ -445,7 +438,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(verifiers.length, 0);
     }
     
-    // Test governance
     function testCreateProposal() public {
         string memory description = "Update coupon rate";
         address target = address(greenBonds);
@@ -521,7 +513,6 @@ contract UpgradeableGreenBondsTest is Test {
     }
 
     function testExecuteProposalWithTimelock() public {
-        // Grant contract ISSUER_ROLE so it can execute the proposal
         vm.prank(admin);
         greenBonds.grantRole(greenBonds.ISSUER_ROLE(), address(greenBonds));
         
@@ -625,7 +616,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.proposalCount(), 1);
     }    
     
-    // Test fund management
     function testWithdrawProjectFunds() public {
         // Purchase bonds to create project funds
         vm.prank(investor1);
@@ -689,7 +679,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.emergencyRecovery(admin, recoveryAmount);
     }
     
-    // Test access control
     function testAccessControl() public {
         // Test unauthorized access
         vm.prank(investor1);
@@ -705,7 +694,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.pause();
     }
     
-    // Test pausable functionality
     function testPausable() public {
         vm.prank(admin);
         greenBonds.pause();
@@ -723,8 +711,6 @@ contract UpgradeableGreenBondsTest is Test {
     }
 
     function testPausableWithSpecificErrors() public {
-        // Test pausable functionality with specific custom error checking
-        
         // First, let's purchase a bond so we can test claim functionality
         vm.prank(investor1);
         greenBonds.purchaseBonds(10);
@@ -792,7 +778,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.trancheCount(), 1);
     }
     
-    // Test maturity event emission
     function testMaturityEventEmission() public {
         // Purchase some bonds
         vm.prank(investor1);
@@ -809,7 +794,6 @@ contract UpgradeableGreenBondsTest is Test {
         greenBonds.redeemBonds();
     }
     
-    // Test allocation percentage updates
     function testUpdateAllocationPercentages() public {
         vm.prank(admin);
         greenBonds.updateAllocationPercentages(5000, 4000, 1000); // 50%, 40%, 10%
@@ -820,7 +804,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(emergency, 1000);
     }
     
-    // Test green certifications
     function testAddGreenCertification() public {
         vm.prank(issuer);
         greenBonds.addGreenCertification("LEED Gold");
@@ -828,12 +811,10 @@ contract UpgradeableGreenBondsTest is Test {
         assertEq(greenBonds.getGreenCertificationCount(), 1);
     }
     
-    // Test version
     function testVersion() public view {
         assertEq(greenBonds.version(), "v1.0.0");
     }
     
-    // Test edge cases and boundary conditions
     function testCalculateInterestEdgeCases() public {
         // Purchase bonds
         vm.prank(investor1);
@@ -849,7 +830,6 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(interest > 0);
     }
     
-    // Test ERC20 transfer overrides
     function testERC20TransferOverrides() public {
         vm.prank(investor1);
         greenBonds.purchaseBonds(10);
@@ -865,8 +845,7 @@ contract UpgradeableGreenBondsTest is Test {
         assertTrue(greenBonds.lastCouponClaimDate(investor2) > 0);
     }
     
-    // Test error scenarios
-    function testComprehensiveErrorScenarios() public {     
+    function testErrorScenarios() public {     
         // Test invalid tranche operations
         vm.expectRevert(UpgradeableGreenBonds.TrancheDoesNotExist.selector);
         greenBonds.getTrancheDetails(999);
