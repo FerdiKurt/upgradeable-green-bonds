@@ -357,3 +357,37 @@ struct ImpactReport {
 - Extended review period for challenged reports
 - Transparent challenge history
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/x-feature`)
+3. Commit your changes (`git commit -m 'Add x feature'`)
+4. Push to the branch (`git push origin feature/x-feature`)
+5. Open a Pull Request
+
+### Code Standards
+- Follow Solidity style guide
+- Add tests for new features
+- Update documentation for API changes
+- Use conventional commit messages
+
+### Testing Requirements
+- All new code must have >95% test coverage
+- Include both unit and integration tests
+- Add fuzz tests for complex logic
+- Verify gas optimization claims
+
+## 📄 License
+
+SPDX-License-Identifier: UNLICENSED
+
+## ⚠️ Disclaimer
+
+This software is provided "as is" without warranties. Green bonds involve financial risk. Please conduct your own research and consider consulting with financial and legal advisors before usage.
+
+---
+
+**Built with 💚 for a sustainable future**
