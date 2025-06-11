@@ -7,7 +7,6 @@ import "../src/UpgradeableGreenBonds.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-
 contract MockERC20 is ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
         _mint(msg.sender, 100000000 * 10**18); // Mint 100M tokens
